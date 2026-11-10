@@ -1,6 +1,6 @@
 # Project status and next steps
 
-Last updated: 2026-11-10 · Branch: `claude/hopeful-johnson-a9lwgn`
+Last updated: 2026-11-10 · Branch: `main`
 
 ## Done
 - Cloudflare Worker + static UI (`wrangler.toml`, `src/worker.ts`, `public/`)
@@ -33,14 +33,14 @@ Development ran with no API keys, and the session's network blocked BART, Open-M
 6. PeMS: build the ingestion job that feeds `PEMS_FEED_URL`, or drop it in favor of 511/Mapbox speeds
 7. Production hardening: rate limiting on `/api/plan` and `/api/geocode`, Web Push (VAPID), error monitoring, end-to-end tests
 8. ~~Add ACE~~ done (Tracy → Great America). To do: verify the default train times (05:00, 06:15, 07:20, 07:45 from Tracy are placeholders) against acerail.com, and find the 511 stop code for live ACE times
-9. Merge this branch into `main` (the repo has no default branch content yet)
+9. ~~Merge into `main`~~ done
 
 ## Resume locally
 ```bash
 git clone https://github.com/Chandan-Kapu/Agentic-Commute-Planner.git
 ```
 ```bash
-cd Agentic-Commute-Planner && git checkout claude/hopeful-johnson-a9lwgn
+cd Agentic-Commute-Planner
 ```
 ```bash
 npm install && npm test && npm run dev
