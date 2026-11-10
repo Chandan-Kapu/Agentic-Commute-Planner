@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Commute Agent</title>
+  <meta name="description" content="Plans your Bay Area commute the night before and re-plans it at sunrise with live 511, BART, Caltrain, PeMS and weather data." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='9' fill='%23111'/><circle cx='11' cy='16' r='4' fill='%23ff6ec7'/><circle cx='22' cy='16' r='4' fill='%23b9a8ff'/></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="nav">
+    <a class="brand" href="/"><span class="brand-mark"><i></i><i></i></span>Commute Agent</a>
+    <nav class="nav-links">
+      <a href="#plan">Plan</a><a href="#agent">Agent</a><a href="#sources">Sources</a><a href="#prefs">Preferences</a>
+    </nav>
+    <div class="nav-right">
+      <span id="agentPill" class="pill">Agent: …</span>
+      <button id="authBtn" class="btn btn-ghost" hidden>Sign in</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-copy">
+        <span class="eyebrow">Agentic commute planning · Bay Area</span>
+        <h1>Plans your commute <em>tonight.</em><br />Fixes it at <em>sunrise.</em></h1>
+        <p class="lede">Pulls 511.org traffic, BART &amp; Caltrain real-time arrivals, Caltrans PeMS freeway speeds and weather — then weighs
+          <b>“leave 7:40 and drive”</b> against <b>“drive to the BART station”</b> or <b>“wait it out”</b>, and pings you when it changes.</p>
+        <div class="cta">
+          <button class="btn btn-dark" data-plan="night">Plan tomorrow</button>
+          <button class="btn btn-light" data-plan="morning">Re-plan this morning</button>
+          <label class="sim">Pretend it’s <input id="simNow" type="time" value="07:05" /> <input id="simOn" type="checkbox" /></label>
+        </div>
+      </div>
+      <div class="flow" aria-hidden="true">
+        <div class="flow-col">
+          <div class="chip c-pink" data-src="511.org traffic events">511 Traffic</div>
+          <div class="chip c-sky" data-src="BART real-time departures">BART</div>
+          <div class="chip c-mint" data-src="Caltrain real-time (511.org)">Caltrain</div>
+          <div class="chip c-peach" data-src="Caltrans PeMS speeds">PeMS speeds</div>
+          <div class="chip c-lilac" data-src="Weather (Open-Meteo)">Weather</div>
+        </div>
+        <svg class="flow-lines" viewBox="0 0 100 200" preserveAspectRatio="none"><path d="M0 20 C60 20 40 100 100 100 M0 60 C60 60 40 100 100 100 M0 100 L100 100 M0 140 C60 140 40 100 100 100 M0 180 C60 180 40 100 100 100" /></svg>
+        <div class="flow-col center">
+          <div class="node-big"><span class="dot"></span>Agent<small id="flowModel">reasoning</small></div>
+          <div class="node-small">Memory · Supabase</div>
+        </div>
+        <svg class="flow-lines short" viewBox="0 0 60 200" preserveAspectRatio="none"><path d="M0 100 L60 100" /></svg>
+        <div class="flow-col"><div class="chip c-ink">Plan + alert</div></div>
+      </div>
+    </section>
+
+    <div id="banner" class="banner" hidden></div>
+
+    <section id="plan" class="grid">
+      <div class="col">
+        <div class="section-head"><h2>The plan</h2><span id="planMeta" class="muted"></span></div>
+        <div id="alert" class="alert" hidden></div>
+        <div id="rec" class="card rec empty">
+          <p class="muted">Press <b>Plan tomorrow</b> for a night-before plan, then <b>Re-plan this morning</b> to see what changed.</p>
+        </div>
+        <div id="alts" class="alts"></div>
+        <ul id="warnings" class="warnings"></ul>
+      </div>
+      <div class="col" id="agent">
+        <div class="section-head"><h2>How the agent decided</h2><span id="agentName" class="muted"></span></div>
+        <div class="canvas"><ol id="trace" class="trace"><li class="node ghost">Tool calls appear here</li></ol></div>
+        <ul id="reasoning" class="reasoning"></ul>
+      </div>
+    </section>
+
+    <section id="sources">
+      <div class="section-head"><h2>Live sources</h2><span class="muted">Each source fails independently — the plan says which ones it used.</span></div>
+      <div id="sourceGrid" class="source-grid"></div>
+    </section>
+
+    <section id="alertsSec">
+      <div class="section-head"><h2>Alerts</h2><span class="muted">Stored in Supabase and pushed to your webhook (ntfy / Slack).</span></div>
+      <ul id="alertList" class="alert-list"><li class="muted">No alerts yet.</li></ul>
+    </section>
+
+    <section id="prefs">
+      <div class="section-head"><h2>Preferences &amp; memory</h2><span id="prefsMeta" class="muted"></span></div>
+      <form id="prefsForm" class="card form">
+        <div class="row">
+          <label>From<input name="origin" required /></label>
+          <label>To<input name="destination" required /></label>
+        </div>
+        <div class="row r4">
+          <label>Arrive by<input name="arriveBy" type="time" /></label>
+          <label>Arrival<select name="arrivalMode"><option value="by">Hard deadline</option><option value="flexible">Flexible</option></select></label>
+          <label>Earliest leave<input name="earliestDepart" type="time" /></label>
+          <label>Latest leave<input name="latestDepart" type="time" /></label>
+        </div>
+        <div class="row r4">
+          <label class="check"><input name="drive.enabled" type="checkbox" /> Drive</label>
+          <label class="check"><input name="bart.enabled" type="checkbox" /> BART</label>
+          <label class="check"><input name="caltrain.enabled" type="checkbox" /> Caltrain</label>
+          <label>Alert if plan shifts ≥ (min)<input name="alerts.thresholdMin" type="number" min="3" max="60" /></label>
+        </div>
+        <details>
+          <summary>Route details (corridor, stations, timings)</summary>
+          <div class="row r4">
+            <label>Freeway corridor<input name="drive.corridor" /></label>
+            <label>Free-flow drive (min)<input name="drive.baselineMin" type="number" /></label>
+            <label>Miles<input name="drive.miles" type="number" step="0.1" /></label>
+            <label>Parking ($)<input name="drive.parkingUsd" type="number" step="0.5" /></label>
+          </div>
+          <div class="row r4">
+            <label>BART station (abbr)<input name="bart.originStation" /></label>
+            <label>BART station name<input name="bart.originName" /></label>
+            <label>Drive to BART (min)<input name="bart.driveToStationMin" type="number" /></label>
+            <label>BART ride (min)<input name="bart.rideMin" type="number" /></label>
+          </div>
+          <div class="row r4">
+            <label>Caltrain stop code (511)<input name="caltrain.originStation" /></label>
+            <label>Caltrain station name<input name="caltrain.originName" /></label>
+            <label>Drive to Caltrain (min)<input name="caltrain.driveToStationMin" type="number" /></label>
+            <label>Caltrain ride (min)<input name="caltrain.rideMin" type="number" /></label>
+          </div>
+          <div class="row">
+            <label>Alert webhook (ntfy.sh topic URL or Slack webhook)<input name="alerts.webhookUrl" type="url" placeholder="https://ntfy.sh/your-secret-topic" /></label>
+          </div>
+        </details>
+        <div class="row end">
+          <span id="bias" class="muted"></span>
+          <button class="btn btn-dark" type="submit">Save preferences</button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <span>Cloudflare Workers · NVIDIA NIM · Supabase</span>
+    <span class="muted">Not a safety system — always check conditions yourself.</span>
+  </footer>
+
+  <dialog id="authDlg" class="card">
+    <form method="dialog" id="authForm">
+      <h3>Sign in</h3>
+      <p class="muted">We’ll email you a magic link. Signing in saves preferences, plans and alerts.</p>
+      <input id="authEmail" type="email" placeholder="you@example.com" required />
+      <div class="row end"><button value="cancel" class="btn btn-ghost">Cancel</button><button id="authSend" class="btn btn-dark" value="send">Send link</button></div>
+    </form>
+  </dialog>
+
+  <script src="/app.js" type="module"></script>
+</body>
+</html>
