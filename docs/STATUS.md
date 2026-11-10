@@ -22,7 +22,7 @@ Development ran with no API keys, and the session's network blocked BART, Open-M
 - Caltrain stop codes (`70xx1` northbound / `70xx2` southbound) need checking against 511 GTFS
 
 ## Next steps
-1. Collect inputs: the real commute addresses and stations, plus keys (NVIDIA, Supabase, 511, optional BART/Mapbox) and the alert webhook URL
+1. ~~Commute details~~ done: Mountain House Pkwy → Great America Pkwy, arrive ~9:00 (flexible), leave ~7:30 (window 7:00–8:00), Mon–Fri, Dublin/Pleasanton BART and San Jose Diridon Caltrain (now the defaults in `src/defaults.ts`). Still to collect: keys (NVIDIA, Supabase, 511, optional BART/Mapbox) and the alert webhook URL
 2. Run `cp .dev.vars.example .dev.vars`, fill in the keys, run `npm run dev`, and check that each source shows **LIVE**
 3. Supabase: run `supabase/schema.sql`, enable email magic links, set redirect URLs
 4. Deploy: `npx wrangler kv namespace create CACHE` (uncomment it in `wrangler.toml`), set the secrets, run `npm run deploy`
@@ -32,7 +32,8 @@ Development ran with no API keys, and the session's network blocked BART, Open-M
    - Auto-suggest the nearest stations and estimate drive-to-station time
 6. PeMS: build the ingestion job that feeds `PEMS_FEED_URL`, or drop it in favor of 511/Mapbox speeds
 7. Production hardening: rate limiting on `/api/plan` and `/api/geocode`, Web Push (VAPID), error monitoring, end-to-end tests
-8. Merge this branch into `main` (the repo has no default branch content yet)
+8. Consider adding ACE (Altamont Corridor Express): its Vasco/Tracy/Lathrop stations are near Mountain House, and its Great America station is at the destination
+9. Merge this branch into `main` (the repo has no default branch content yet)
 
 ## Resume locally
 ```bash

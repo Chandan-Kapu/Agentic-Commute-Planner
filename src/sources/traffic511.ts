@@ -24,7 +24,8 @@ function inBox(coords: any, prefs: Prefs): boolean {
 
 export async function trafficEvents(env: Env, prefs: Prefs): Promise<SourceResult<{ incidents: Incident[] }>> {
   const src = "511.org traffic events";
-  const { road, dir } = parseCorridor(prefs.drive.corridor);
+  // Corridor may list several freeways, e.g. "I-580 W, I-680 S".
+  const corridors = prefs.drive.corridor.split(/[,;/+]|\bthen\b/i).map((c) => parseCorridor(c.trim())).filter((c) => c.road);
   if (!env.API_511_KEY) {
     return mock(src, {
       incidents: [{
@@ -39,8 +40,8 @@ export async function trafficEvents(env: Env, prefs: Prefs): Promise<SourceResul
     const out: Incident[] = [];
     for (const e of j?.events ?? []) {
       const roads: any[] = e.roads ?? [];
-      const hit = roads.find((r) => String(r.name ?? "").includes(road) &&
-        (!dir || String(r.direction ?? "").toLowerCase().includes(dir) || !r.direction));
+      const hit = roads.find((r) => corridors.some(({ road, dir }) => road && String(r.name ?? "").includes(road) &&
+        (!dir || String(r.direction ?? "").toLowerCase().includes(dir) || !r.direction)));
       if (!hit || !inBox(e.geography?.coordinates, prefs)) continue;
       out.push({
         headline: String(e.headline ?? "Traffic event"),

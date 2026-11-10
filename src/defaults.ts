@@ -1,30 +1,34 @@
 import type { Prefs } from "./types.ts";
 
-// Demo commute: Willow Glen (San Jose) → SoMa (SF). Every value is user-editable.
-// Station codes: BART uses abbreviations (api.bart.gov); Caltrain uses 511 stop codes —
-// verify yours at https://511.org/open-data/transit (GTFS stops for agency CT).
+// Default commute: Mountain House → Great America Pkwy (Santa Clara), arrive ~9:00 AM, flexible.
+// Every value is editable on the website ("Your commute" / "Your stations").
+// Times and costs below are starting estimates — adjust them to your real experience.
 export const DEFAULT_PREFS: Prefs = {
-  origin: { label: "Willow Glen, San Jose, CA", lat: 37.3083, lon: -121.8996 },
-  destination: { label: "4th & King, San Francisco, CA", lat: 37.7766, lon: -122.3947 },
+  origin: { label: "Mountain House Pkwy, Mountain House, CA", lat: 37.7832, lon: -121.5441 },
+  destination: { label: "Great America Pkwy, Santa Clara, CA", lat: 37.4029, lon: -121.9763 },
   arriveBy: "09:00",
-  arrivalMode: "by",
-  earliestDepart: "06:30",
-  latestDepart: "08:45",
+  arrivalMode: "flexible",
+  // You leave around 7:30; the window lets the agent suggest leaving a bit earlier or later.
+  earliestDepart: "07:00",
+  latestDepart: "08:00",
   workdays: [1, 2, 3, 4, 5],
   bufferMin: 10,
   drive: {
-    enabled: true, corridor: "US-101 N", baselineMin: 52, miles: 49,
-    costPerMile: 0.3, tollUsd: 0, parkingUsd: 28,
+    // I-580 W over the Altamont, then I-680 S through Sunol, to CA-237 / Great America Pkwy.
+    enabled: true, corridor: "I-580 W, I-680 S", baselineMin: 55, miles: 50,
+    costPerMile: 0.3, tollUsd: 0, parkingUsd: 0,
   },
   bart: {
-    enabled: true, originStation: "BERY", originName: "Berryessa", destStation: "MONT", destName: "Montgomery St",
-    direction: "n", driveToStationMin: 16, parkingBufferMin: 6, rideMin: 64, egressMin: 12,
-    headwayMin: 15, scheduleAnchor: "06:03", fareUsd: 8.2, parkingUsd: 3,
+    // Dublin/Pleasanton → Milpitas (transfer at Bay Fair), then VTA Orange Line light rail toward Great America.
+    enabled: true, originStation: "DUBL", originName: "Dublin/Pleasanton", destStation: "MLPT", destName: "Milpitas",
+    direction: "s", driveToStationMin: 30, parkingBufferMin: 7, rideMin: 55, egressMin: 30,
+    headwayMin: 15, scheduleAnchor: "06:04", fareUsd: 10.3, parkingUsd: 3,
   },
   caltrain: {
-    enabled: true, originStation: "70261", originName: "San Jose Diridon", destStation: "70011", destName: "San Francisco",
-    direction: "N", driveToStationMin: 9, parkingBufferMin: 6, rideMin: 62, egressMin: 4,
-    headwayMin: 20, scheduleAnchor: "06:12", fareUsd: 8.25, parkingUsd: 5.5,
+    // San Jose Diridon → Santa Clara (northbound), then ~4 mi last mile (shuttle / bike / rideshare) to Great America Pkwy.
+    enabled: true, originStation: "70261", originName: "San Jose Diridon", destStation: "70241", destName: "Santa Clara",
+    direction: "N", driveToStationMin: 60, parkingBufferMin: 6, rideMin: 6, egressMin: 18,
+    headwayMin: 20, scheduleAnchor: "06:12", fareUsd: 4.5, parkingUsd: 5.5,
   },
   weights: { time: 1, reliability: 1, cost: 0.5, early: 0.3 },
   modeBias: { drive: 0, bart: 0, caltrain: 0 },

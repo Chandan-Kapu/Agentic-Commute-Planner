@@ -2,7 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildOptions, profile } from "../src/planner.ts";
 import { computeAlert } from "../src/alerts.ts";
-import { DEFAULT_PREFS, withDefaults } from "../src/defaults.ts";
+import { withDefaults } from "../src/defaults.ts";
+import { SJ_SF_PREFS as DEFAULT_PREFS } from "./fixtures.ts";
 import type { PlanResult, Snapshot } from "../src/types.ts";
 
 const t0 = Date.UTC(2026, 10, 11, 15, 0);
@@ -38,7 +39,7 @@ test("produces one option per enabled mode, sorted by score", () => {
 });
 
 test("a major incident in the morning makes driving worse and triggers an alert", () => {
-  const prefs = withDefaults({ caltrain: { ...DEFAULT_PREFS.caltrain }, bart: { ...DEFAULT_PREFS.bart, enabled: false } });
+  const prefs = withDefaults({ ...DEFAULT_PREFS, caltrain: { ...DEFAULT_PREFS.caltrain }, bart: { ...DEFAULT_PREFS.bart, enabled: false } });
   const night = buildOptions({ prefs, snap: snap(), targetDate: "2026-11-11", nowMin: null });
   const bad = snap({
     traffic: src({ incidents: [{ headline: "Crash blocking 2 lanes", severity: "Major", road: "US-101 N", type: "INCIDENT", penaltyMin: 25 }] }),
@@ -53,8 +54,20 @@ test("a major incident in the morning makes driving worse and triggers an alert"
 });
 
 test("flexible arrival can recommend waiting out the peak", () => {
-  const prefs = withDefaults({ arrivalMode: "flexible", arriveBy: "09:30", earliestDepart: "07:45", latestDepart: "09:30",
+  const prefs = withDefaults({ ...DEFAULT_PREFS, arrivalMode: "flexible", arriveBy: "09:30", earliestDepart: "07:45", latestDepart: "09:30",
     bart: { ...DEFAULT_PREFS.bart, enabled: false }, caltrain: { ...DEFAULT_PREFS.caltrain, enabled: false } });
   const out = buildOptions({ prefs, snap: snap(), targetDate: "2026-11-11", nowMin: null });
   assert.ok(out.recommended.departMin >= 8 * 60 + 30, `expected a late departure, got ${out.recommended.departMin}`);
+});
+
+test("default Mountain House commute plans all three modes and prefers driving on a normal day", async () => {
+  const { DEFAULT_PREFS: MH } = await import("../src/defaults.ts");
+  const out = buildOptions({ prefs: MH, snap: snap(), targetDate: "2026-11-11", nowMin: null });
+  assert.deepEqual(new Set(out.options.map((o) => o.mode)), new Set(["drive", "bart", "caltrain"]));
+  assert.equal(out.recommended.mode, "drive");
+});
+
+test("traffic filter understands multi-freeway corridors", async () => {
+  const { parseCorridor } = await import("../src/sources/traffic511.ts");
+  assert.deepEqual("I-580 W, I-680 S".split(",").map((c) => parseCorridor(c.trim())), [{ road: "580", dir: "west" }, { road: "680", dir: "south" }]);
 });
