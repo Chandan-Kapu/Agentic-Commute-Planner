@@ -60,14 +60,26 @@ test("flexible arrival can recommend waiting out the peak", () => {
   assert.ok(out.recommended.departMin >= 8 * 60 + 30, `expected a late departure, got ${out.recommended.departMin}`);
 });
 
-test("default Mountain House commute plans all three modes and prefers driving on a normal day", async () => {
+test("default Mountain House commute plans all four modes and prefers driving on a normal day", async () => {
   const { DEFAULT_PREFS: MH } = await import("../src/defaults.ts");
   const out = buildOptions({ prefs: MH, snap: snap(), targetDate: "2026-11-11", nowMin: null });
-  assert.deepEqual(new Set(out.options.map((o) => o.mode)), new Set(["drive", "bart", "caltrain"]));
+  assert.deepEqual(new Set(out.options.map((o) => o.mode)), new Set(["drive", "bart", "caltrain", "ace"]));
   assert.equal(out.recommended.mode, "drive");
 });
 
 test("traffic filter understands multi-freeway corridors", async () => {
   const { parseCorridor } = await import("../src/sources/traffic511.ts");
   assert.deepEqual("I-580 W, I-680 S".split(",").map((c) => parseCorridor(c.trim())), [{ road: "580", dir: "west" }, { road: "680", dir: "south" }]);
+});
+
+test("ACE uses its fixed timetable and is skipped after the last train", async () => {
+  const { DEFAULT_PREFS: MH } = await import("../src/defaults.ts");
+  const prefs = withDefaults({ ...MH, drive: { ...MH.drive, enabled: false }, bart: { ...MH.bart, enabled: false }, caltrain: { ...MH.caltrain, enabled: false },
+    ace: { ...MH.ace, departures: ["07:20", "07:45"] }, earliestDepart: "06:30", latestDepart: "07:30" });
+  const out = buildOptions({ prefs, snap: snap(), targetDate: "2026-11-11", nowMin: null });
+  const ride = out.recommended.legs.find((l) => l.kind === "ride")!;
+  assert.equal(out.recommended.mode, "ace");
+  assert.ok([7 * 60 + 20, 7 * 60 + 45].includes(ride.startMin), `train at ${ride.startMin}`);
+  const late = withDefaults({ ...prefs, earliestDepart: "07:40", latestDepart: "08:00" });
+  assert.throws(() => buildOptions({ prefs: late, snap: snap(), targetDate: "2026-11-11", nowMin: null }), /No modes/);
 });

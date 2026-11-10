@@ -39,7 +39,7 @@ export async function makePlan(env: Env, req: PlanRequest): Promise<PlanResult> 
   }
   const agent = req.useLlm === false ? deterministicAgent(req.prefs, snap, plan) : await runAgent(env, req.prefs, snap, plan, req.kind);
 
-  const sources = [snap.traffic, snap.speeds, snap.route, snap.bart, snap.caltrain, snap.weather]
+  const sources = [snap.traffic, snap.speeds, snap.route, snap.bart, snap.caltrain, snap.ace, snap.weather]
     .map((s) => ({ name: s.source, status: s.status, note: s.note }));
   const warnings = [...plan.warnings];
   if (simulated) warnings.push(`Simulating ${req.simulateNow} — live traffic applied, live train times ignored.`);

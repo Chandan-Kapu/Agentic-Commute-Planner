@@ -43,6 +43,7 @@
           <div class="chip c-sky" data-src="BART real-time departures">BART</div>
           <div class="chip c-mint" data-src="Caltrain real-time (511.org)">Caltrain</div>
           <div class="chip c-peach" data-src="Caltrans PeMS speeds">PeMS speeds</div>
+          <div class="chip c-peach" data-src="ACE real-time (511.org)">ACE</div>
           <div class="chip c-lilac" data-src="Weather (Open-Meteo)">Weather</div>
         </div>
         <svg class="flow-lines" viewBox="0 0 100 200" preserveAspectRatio="none"><path d="M0 20 C60 20 40 100 100 100 M0 60 C60 60 40 100 100 100 M0 100 L100 100 M0 140 C60 140 40 100 100 100 M0 180 C60 180 40 100 100 100" /></svg>
@@ -87,7 +88,7 @@
         </div>
 
         <div class="card panel">
-          <div class="panel-head"><span class="step">2</span><div><h2>Your stations</h2><p class="muted">Where you’d catch the train and where you’d get off.</p></div></div>
+          <div class="panel-head"><span class="step">2</span><div><h2>Your stations</h2><p class="muted">Where you’d catch BART, Caltrain or ACE, and where you’d get off.</p></div></div>
           <div class="mode-card c-sky-soft">
             <label class="check big"><input name="bart.enabled" type="checkbox" /> BART</label>
             <div class="row">
@@ -113,6 +114,20 @@
               <label>Walk to destination (min)<input name="caltrain.egressMin" type="number" min="0" /></label>
             </div>
             <p id="caltrainNote" class="hint"></p>
+          </div>
+          <div class="mode-card c-peach-soft">
+            <label class="check big"><input name="ace.enabled" type="checkbox" /> ACE train <span class="muted small">Altamont Corridor Express</span></label>
+            <div class="row">
+              <label>Board at<select name="ace.originName" data-list="ace"></select></label>
+              <label>Get off at<select name="ace.destName" data-list="ace"></select></label>
+            </div>
+            <label>Train times at your boarding station (weekday mornings)<input name="ace.departures" placeholder="05:00, 06:15, 07:20, 07:45" /></label>
+            <div class="row r3">
+              <label>Drive to station (min)<input name="ace.driveToStationMin" type="number" min="0" /></label>
+              <label>Ride (min)<input name="ace.rideMin" type="number" min="1" /></label>
+              <label>Walk / shuttle to destination (min)<input name="ace.egressMin" type="number" min="0" /></label>
+            </div>
+            <p id="aceNote" class="hint"></p>
           </div>
           <details>
             <summary>Alerts &amp; memory</summary>

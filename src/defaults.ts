@@ -30,8 +30,17 @@ export const DEFAULT_PREFS: Prefs = {
     direction: "N", driveToStationMin: 60, parkingBufferMin: 6, rideMin: 6, egressMin: 18,
     headwayMin: 20, scheduleAnchor: "06:12", fareUsd: 4.5, parkingUsd: 5.5,
   },
+  ace: {
+    // Altamont Corridor Express: Tracy (drive east, against traffic) → Great America station, then ACE shuttle / walk.
+    // Train times below are APPROXIMATE — check acerail.com and edit them under "Your stations".
+    // originStation = optional 511 stop code for live ACE times (agency "CE"); leave blank to use the timetable.
+    enabled: true, originStation: "", originName: "Tracy", destStation: "", destName: "Great America",
+    direction: "W", driveToStationMin: 18, parkingBufferMin: 6, rideMin: 85, egressMin: 10,
+    headwayMin: 60, scheduleAnchor: "05:00", fareUsd: 11.75, parkingUsd: 0,
+    departures: ["05:00", "06:15", "07:20", "07:45"],
+  },
   weights: { time: 1, reliability: 1, cost: 0.5, early: 0.3 },
-  modeBias: { drive: 0, bart: 0, caltrain: 0 },
+  modeBias: { drive: 0, bart: 0, caltrain: 0, ace: 0 },
   alerts: { enabled: true, thresholdMin: 10 },
 };
 
@@ -40,7 +49,7 @@ export function withDefaults(p: Partial<Prefs> | null | undefined): Prefs {
   const d = structuredClone(DEFAULT_PREFS);
   if (!p) return d;
   const out: any = { ...d, ...p };
-  for (const k of ["origin", "destination", "drive", "bart", "caltrain", "weights", "modeBias", "alerts"] as const) {
+  for (const k of ["origin", "destination", "drive", "bart", "caltrain", "ace", "weights", "modeBias", "alerts"] as const) {
     out[k] = { ...(d as any)[k], ...((p as any)[k] ?? {}) };
   }
   return out as Prefs;

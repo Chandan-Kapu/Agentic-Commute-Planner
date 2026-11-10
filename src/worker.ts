@@ -93,9 +93,9 @@ async function api(req: Request, env: Env, url: URL): Promise<Response> {
     // Memory: nudge the learned mode bias toward what the user actually chose.
     const b = await body(req);
     const chosen = b.chosenMode as Mode;
-    if (!["drive", "bart", "caltrain"].includes(chosen)) throw new HttpError(400, "chosenMode must be drive|bart|caltrain");
+    if (!["drive", "bart", "caltrain", "ace"].includes(chosen)) throw new HttpError(400, "chosenMode must be drive|bart|caltrain|ace");
     const { store, uid, prefs } = await ctxFor(env, req, b.prefs);
-    for (const k of ["drive", "bart", "caltrain"] as Mode[]) {
+    for (const k of ["drive", "bart", "caltrain", "ace"] as Mode[]) {
       const delta = k === chosen ? -1.5 : 0.5;
       prefs.modeBias[k] = Math.max(-15, Math.min(15, Math.round(((prefs.modeBias[k] ?? 0) + delta) * 10) / 10));
     }

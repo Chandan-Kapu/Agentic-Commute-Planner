@@ -20,8 +20,8 @@ const TOOLS = [
   { name: "get_preferences", description: "The commuter's saved preferences: arrival target, modes, weights, learned mode bias." },
   { name: "get_traffic_incidents", description: "Active 511.org traffic incidents on the driving corridor." },
   { name: "get_freeway_speeds", description: "Current Caltrans PeMS corridor speed vs free-flow." },
-  { name: "get_transit_departures", description: "Real-time departures for BART or Caltrain at the commuter's origin station.",
-    params: { system: { type: "string", enum: ["bart", "caltrain"] } } },
+  { name: "get_transit_departures", description: "Real-time (or timetable) departures for BART, Caltrain or ACE at the commuter's boarding station.",
+    params: { system: { type: "string", enum: ["bart", "caltrain", "ace"] } } },
   { name: "get_weather", description: "Hourly precipitation/temperature forecast for the commute window." },
   { name: "evaluate_options", description: "Scored commute options from the deterministic planner (ids, departure, arrival, late risk, cost)." },
 ].map((t) => ({
@@ -42,7 +42,7 @@ function runTool(name: string, args: any, prefs: Prefs, snap: Snapshot, plan: Pl
     case "get_preferences": {
       const { arriveBy, arrivalMode, earliestDepart, latestDepart, bufferMin, weights, modeBias } = prefs;
       return { out: { arriveBy, arrivalMode, earliestDepart, latestDepart, bufferMin, weights, modeBias,
-        modes: { drive: prefs.drive.enabled, bart: prefs.bart.enabled, caltrain: prefs.caltrain.enabled } },
+        modes: { drive: prefs.drive.enabled, bart: prefs.bart.enabled, caltrain: prefs.caltrain.enabled, ace: !!prefs.ace?.enabled } },
         title: "Read preferences", detail: `Arrive ${arrivalMode === "by" ? "by " + arriveBy : "flexibly ~" + arriveBy}` };
     }
     case "get_traffic_incidents": {
@@ -56,11 +56,12 @@ function runTool(name: string, args: any, prefs: Prefs, snap: Snapshot, plan: Pl
         detail: s ? `${s.corridor}: ${s.speedMph} mph (${s.ratio.toFixed(2)}× free-flow)` : "Unavailable" };
     }
     case "get_transit_departures": {
-      const sys = args?.system === "caltrain" ? "caltrain" : "bart";
+      const sys = (["caltrain", "ace"].includes(args?.system) ? args.system : "bart") as "bart" | "caltrain" | "ace";
       const deps = (snap[sys].data?.departures ?? []).slice(0, 6).map((d) => ({
         inMin: Math.round((d.epochMs - nowEpoch) / 60000), to: d.destination, delayMin: d.delayMin, line: d.line }));
-      return { out: { status: snap[sys].status, departures: deps }, title: sys === "bart" ? "BART departures" : "Caltrain departures",
-        detail: deps.length ? deps.slice(0, 3).map((d) => `${d.inMin}m`).join(", ") : snap[sys].note ?? "None" };
+      return { out: { status: snap[sys].status, departures: deps }, title: `${{ bart: "BART", caltrain: "Caltrain", ace: "ACE" }[sys]} departures`,
+        detail: deps.length ? deps.slice(0, 3).map((d) => `${d.inMin}m`).join(", ") : snap[sys].note ?? "None",
+        ...(sys === "ace" && !deps.length ? { out: { status: snap.ace.status, timetable: prefs.ace?.departures ?? [] } } : {}) };
     }
     case "get_weather": {
       const hrs = (snap.weather.data?.hours ?? []).filter((h) => h.hour >= 6 && h.hour <= 10).slice(0, 10);
@@ -79,7 +80,7 @@ function runTool(name: string, args: any, prefs: Prefs, snap: Snapshot, plan: Pl
 export function deterministicAgent(prefs: Prefs, snap: Snapshot, plan: PlannerOutput, note?: string): AgentOutput {
   const trace: TraceStep[] = [];
   for (const [name, args] of [["get_preferences"], ["get_traffic_incidents"], ["get_freeway_speeds"],
-    ["get_transit_departures", { system: "bart" }], ["get_transit_departures", { system: "caltrain" }], ["get_weather"], ["evaluate_options"]] as const) {
+    ["get_transit_departures", { system: "bart" }], ["get_transit_departures", { system: "caltrain" }], ["get_transit_departures", { system: "ace" }], ["get_weather"], ["evaluate_options"]] as const) {
     const r = runTool(name, args, prefs, snap, plan, snap.nowEpoch);
     trace.push({ kind: "tool", title: r.title, detail: r.detail });
   }
@@ -97,7 +98,7 @@ export function deterministicAgent(prefs: Prefs, snap: Snapshot, plan: PlannerOu
 }
 
 const SYSTEM = `You are a Bay Area commute-planning agent. Use the tools to inspect live traffic, freeway speeds,
-BART/Caltrain departures, weather and the user's preferences, then call evaluate_options.
+BART/Caltrain/ACE departures, weather and the user's preferences, then call evaluate_options.
 You MUST choose one option id returned by evaluate_options — never invent times, durations or options.
 Prefer the lowest score unless live evidence (e.g. a major incident, a delayed train, rain) or stated preferences justify another option; say why.
 When finished, reply with ONLY a JSON object:

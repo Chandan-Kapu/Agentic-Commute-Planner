@@ -29,8 +29,8 @@ export async function trafficEvents(env: Env, prefs: Prefs): Promise<SourceResul
   if (!env.API_511_KEY) {
     return mock(src, {
       incidents: [{
-        headline: `Stalled vehicle on ${prefs.drive.corridor} near Oregon Expwy (demo)`,
-        severity: "Moderate", road: prefs.drive.corridor, type: "INCIDENT", penaltyMin: 7,
+        headline: `Stalled vehicle on ${prefs.drive.corridor.split(",")[0].trim()} (sample incident)`,
+        severity: "Moderate", road: prefs.drive.corridor.split(",")[0].trim(), type: "INCIDENT", penaltyMin: 7,
       }],
     }, "No API_511_KEY — showing a sample incident");
   }

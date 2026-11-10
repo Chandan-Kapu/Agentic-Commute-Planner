@@ -1,4 +1,5 @@
-export type Mode = "drive" | "bart" | "caltrain";
+export type Mode = "drive" | "bart" | "caltrain" | "ace";
+export type TransitMode = "bart" | "caltrain" | "ace";
 export type SourceStatus = "live" | "mock" | "error" | "off";
 
 export interface Place {
@@ -24,6 +25,8 @@ export interface TransitPrefs {
   parkingUsd: number;
   /** BART only: abbreviations of train destinations that reach destStation without going the wrong way. */
   lineHeads?: string[];
+  /** Fixed timetable at the boarding station ("HH:MM"). Used instead of headway — e.g. ACE runs only a few trains. */
+  departures?: string[];
 }
 
 export interface Prefs {
@@ -46,6 +49,7 @@ export interface Prefs {
   };
   bart: TransitPrefs;
   caltrain: TransitPrefs;
+  ace: TransitPrefs;
   weights: { time: number; reliability: number; cost: number; early: number };
   modeBias: Record<Mode, number>; // learned from feedback, in minute-equivalents (negative = preferred)
   alerts: { enabled: boolean; thresholdMin: number; webhookUrl?: string };
@@ -90,6 +94,7 @@ export interface Snapshot {
   route: SourceResult<{ minutes: number }>;
   bart: SourceResult<{ departures: Departure[] }>;
   caltrain: SourceResult<{ departures: Departure[] }>;
+  ace: SourceResult<{ departures: Departure[] }>;
   weather: SourceResult<{ hours: WeatherHour[] }>;
 }
 

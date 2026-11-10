@@ -1,5 +1,5 @@
 // Commute Agent UI — vanilla JS, no build step.
-import { BART, CALTRAIN, bartName, caltrainTrip } from "/stations.js";
+import { ACE, BART, CALTRAIN, aceRideMin, bartName, caltrainTrip } from "/stations.js";
 const $ = (s) => document.querySelector(s);
 const hm = (t) => { const [h, m] = String(t).split(":").map(Number); return (h || 0) * 60 + (m || 0); };
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -52,13 +52,13 @@ function renderAuth() {
 // ---------- prefs: "Your commute" + "Your stations" ----------
 const get = (o, path) => path.split(".").reduce((a, k) => a?.[k], o);
 const set = (o, path, v) => { const ks = path.split("."); let a = o; ks.slice(0, -1).forEach((k) => (a = a[k] ??= {})); a[ks.at(-1)] = v; };
-const SPECIAL = new Set(["origin", "destination", "workday"]);
+const SPECIAL = new Set(["origin", "destination", "workday", "ace.departures"]);
 
 function fillStationLists() {
   for (const sel of document.querySelectorAll("select[data-list]")) {
     sel.innerHTML = sel.dataset.list === "bart"
       ? BART.map(([a, n]) => `<option value="${a}">${esc(n)}</option>`).join("")
-      : CALTRAIN.map(([n]) => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
+      : (sel.dataset.list === "ace" ? ACE : CALTRAIN).map(([n]) => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
   }
 }
 
@@ -71,6 +71,7 @@ function fillForm(p) {
     if (el.type === "checkbox") el.checked = !!v; else el.value = v ?? "";
   }
   for (const el of f.querySelectorAll('input[name="workday"]')) el.checked = p.workdays.includes(Number(el.value));
+  f["ace.departures"].value = (p.ace?.departures ?? []).join(", ");
   const b = p.modeBias || {};
   const learned = Object.entries(b).filter(([, v]) => v).map(([k, v]) => `${k} ${v < 0 ? "preferred" : "less preferred"} (${v > 0 ? "+" : ""}${v})`);
   $("#bias").textContent = learned.length ? `Learned from your choices: ${learned.join(" · ")}` : "Use “I took this” on a plan and it learns which mode you prefer.";
@@ -81,6 +82,9 @@ function stationNotes(p) {
   $("#bartNote").textContent = p.bart.originStation === p.bart.destStation ? "Pick two different BART stations." :
     `${bartName(p.bart.originStation)} → ${bartName(p.bart.destStation)}${p.bart.lineHeads?.length ? ` · trains toward ${p.bart.lineHeads.map(bartName).join(", ")}` : ""}`;
   const ct = caltrainTrip(p.caltrain.originName, p.caltrain.destName);
+  const aceRide = aceRideMin(p.ace?.originName, p.ace?.destName);
+  $("#aceNote").textContent = aceRide == null ? "Pick an ACE station west of where you board (trains run westbound in the morning)."
+    : `Westbound · about ${aceRide} min ride. ACE runs only a few morning trains — check times at acerail.com.`;
   $("#caltrainNote").textContent = ct ? `${ct.direction === "N" ? "Northbound" : "Southbound"} · 511 stop ${ct.originStation}` : "Pick two different Caltrain stations.";
 }
 
@@ -102,8 +106,13 @@ async function readForm() {
     set(p, el.name, el.type === "checkbox" ? el.checked : el.type === "number" ? Number(el.value) : el.value);
   }
   p.workdays = [...f.querySelectorAll('input[name="workday"]:checked')].map((el) => Number(el.value));
+  const aceBefore = `${state.prefs.ace?.originName}>${state.prefs.ace?.destName}`;
+  const times = f["ace.departures"].value.split(/[,\s]+/).filter(Boolean);
+  const bad = times.find((t) => !/^\d{1,2}:\d{2}$/.test(t) || hm(t) >= 24 * 60);
+  if (bad) throw new Error(`ACE train time “${bad}” should look like 07:20.`);
+  p.ace.departures = times.map((t) => t.padStart(5, "0")).sort();
   if (hm(p.earliestDepart) >= hm(p.latestDepart)) throw new Error("“Earliest I’d leave” must be before “Latest I’d leave”.");
-  if (!p.drive.enabled && !p.bart.enabled && !p.caltrain.enabled) throw new Error("Turn on at least one of driving, BART or Caltrain.");
+  if (!p.drive.enabled && !p.bart.enabled && !p.caltrain.enabled && !p.ace.enabled) throw new Error("Turn on at least one of driving, BART, Caltrain or ACE.");
 
   let moved = false;
   for (const k of ["origin", "destination"]) {
@@ -145,6 +154,15 @@ async function readForm() {
       notes.push(`Caltrain ride estimated at ${ct.rideMin} min — adjust “Ride (min)” if you usually take a Baby Bullet or local.`);
     }
   }
+  if (p.ace.enabled) {
+    const r = aceRideMin(p.ace.originName, p.ace.destName);
+    if (r == null) throw new Error("ACE: pick a “Get off at” station west of where you board.");
+    if (!p.ace.departures.length) throw new Error("ACE: enter at least one train time.");
+    if (`${p.ace.originName}>${p.ace.destName}` !== aceBefore) {
+      p.ace.rideMin = r;
+      notes.push(`ACE ride estimated at ${r} min — check the timetable.`);
+    }
+  }
   if (notes.length) banner(notes.join(" "));
   return p;
 }
@@ -171,7 +189,7 @@ $("#prefsForm").addEventListener("submit", async (e) => {
 for (const sel of document.querySelectorAll("select[data-list]")) {
   sel.addEventListener("change", () => {
     const f = $("#prefsForm"), p = structuredClone(state.prefs);
-    for (const k of ["bart.originStation", "bart.destStation", "caltrain.originName", "caltrain.destName"]) set(p, k, f[k].value);
+    for (const k of ["bart.originStation", "bart.destStation", "caltrain.originName", "caltrain.destName", "ace.originName", "ace.destName"]) set(p, k, f[k].value);
     stationNotes(p);
   });
 }
@@ -200,8 +218,9 @@ async function plan(kind) {
 }
 document.querySelectorAll("[data-plan]").forEach((b) => b.addEventListener("click", () => plan(b.dataset.plan)));
 
+const lateWord = () => (state.prefs?.arrivalMode === "flexible" ? `past ${fmt(hm(state.prefs.arriveBy))}` : "late");
 const riskClass = (r) => (r < 0.1 ? "risk-low" : r < 0.3 ? "risk-mid" : "risk-high");
-const MODE_ICON = { drive: "CAR", bart: "BART", caltrain: "CT" };
+const MODE_ICON = { drive: "CAR", bart: "BART", caltrain: "CT", ace: "ACE" };
 const STEP_ICON = { tool: "⚙︎", think: "✦", decide: "✓", warn: "!" };
 
 function timeline(o) {
@@ -226,7 +245,7 @@ function renderPlan(p) {
     <div class="stats">
       <div class="stat"><b>${fmt(o.departMin)}</b><span>Leave</span></div>
       <div class="stat"><b>${fmt(o.arriveMin)}</b><span>Arrive (±${Math.round(o.sdMin)}m)</span></div>
-      <div class="stat"><b class="${riskClass(o.lateRisk)}">${Math.round(o.lateRisk * 100)}%</b><span>Late risk</span></div>
+      <div class="stat"><b class="${riskClass(o.lateRisk)}">${Math.round(o.lateRisk * 100)}%</b><span>${state.prefs?.arrivalMode === "flexible" ? `Chance past ${fmt(hm(state.prefs.arriveBy))}` : "Late risk"}</span></div>
       <div class="stat"><b>$${o.costUsd.toFixed(2)}</b><span>Est. cost</span></div>
     </div>
     ${timeline(o)}
@@ -235,7 +254,7 @@ function renderPlan(p) {
   $("#alts").innerHTML = p.alternatives.map((a) => `
     <div class="card alt">
       <div class="icon icon-${a.mode}">${MODE_ICON[a.mode]}</div>
-      <div><h4>${esc(a.label)}</h4><p>${a.durationMin} min · arrive ${fmt(a.arriveMin)} · <span class="${riskClass(a.lateRisk)}">${Math.round(a.lateRisk * 100)}% late</span> · $${a.costUsd.toFixed(2)}</p></div>
+      <div><h4>${esc(a.label)}</h4><p>${a.durationMin} min · arrive ${fmt(a.arriveMin)} · <span class="${riskClass(a.lateRisk)}">${Math.round(a.lateRisk * 100)}% ${lateWord()}</span> · $${a.costUsd.toFixed(2)}</p></div>
       <div class="delta">${a.arriveMin - o.arriveMin >= 0 ? "+" : ""}${a.arriveMin - o.arriveMin} min<br /><button class="btn btn-ghost btn-sm" data-took="${a.mode}">I took this</button></div>
     </div>`).join("");
   document.querySelectorAll("[data-took]").forEach((b) => b.addEventListener("click", () => feedback(b.dataset.took)));

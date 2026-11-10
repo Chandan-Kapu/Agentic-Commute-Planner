@@ -35,7 +35,7 @@ create table if not exists public.feedback (
   id bigint generated always as identity primary key,
   user_id uuid not null references auth.users (id) on delete cascade,
   plan_id bigint references public.plans (id) on delete set null,
-  chosen_mode text not null check (chosen_mode in ('drive', 'bart', 'caltrain')),
+  chosen_mode text not null check (chosen_mode in ('drive', 'bart', 'caltrain', 'ace')),
   actual_depart time,
   actual_arrive time,
   rating smallint check (rating between 1 and 5),
@@ -56,3 +56,7 @@ create policy "own feedback" on public.feedback for select using (auth.uid() = u
 
 -- Keep history bounded (run daily via pg_cron, or manually).
 -- delete from public.plans where created_at < now() - interval '90 days';
+
+-- Migration for databases created before ACE was added:
+-- alter table public.feedback drop constraint if exists feedback_chosen_mode_check;
+-- alter table public.feedback add constraint feedback_chosen_mode_check check (chosen_mode in ('drive', 'bart', 'caltrain', 'ace'));

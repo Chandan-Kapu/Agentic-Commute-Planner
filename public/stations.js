@@ -43,3 +43,13 @@ export function caltrainTrip(fromName, toName) {
 }
 
 export const bartName = (abbr) => (BART.find((s) => s[0] === abbr) ?? [abbr, abbr])[1];
+
+// ACE (Altamont Corridor Express), east → west, with approximate minutes from Stockton (for ride-time estimates only).
+export const ACE = [
+  ["Stockton", 0], ["Lathrop/Manteca", 20], ["Tracy", 37], ["Vasco Road", 60], ["Livermore", 66], ["Pleasanton", 75],
+  ["Fremont-Centerville", 102], ["Great America", 122], ["Santa Clara", 132], ["San Jose", 142],
+];
+export function aceRideMin(fromName, toName) {
+  const a = ACE.find((s) => s[0] === fromName), b = ACE.find((s) => s[0] === toName);
+  return a && b && b[1] > a[1] ? b[1] - a[1] : null;
+}

@@ -36,20 +36,10 @@ export async function bartDepartures(env: Env, prefs: Prefs): Promise<SourceResu
   });
 }
 
-export async function caltrainDepartures(env: Env, prefs: Prefs, nowEpoch: number): Promise<SourceResult<{ departures: Departure[] }>> {
-  const src = "Caltrain real-time (511.org)";
-  const c = prefs.caltrain;
-  if (!c.enabled) return off(src, "Caltrain disabled in preferences");
-  if (!env.API_511_KEY) {
-    const deps: Departure[] = [];
-    for (let i = 0; i < 4; i++) {
-      deps.push({ epochMs: nowEpoch + (7 + i * c.headwayMin) * 60_000, destination: c.destName, delayMin: i === 0 ? 3 : 0, line: i % 2 ? "Local" : "Limited" });
-    }
-    return mock(src, { departures: deps }, "No API_511_KEY — showing sample departures");
-  }
-  return cachedSource(env, `511:ct:${c.originStation}`, 90, src, async () => {
+async function stopMonitoring511(env: Env, src: string, agency: string, stopCode: string): Promise<SourceResult<{ departures: Departure[] }>> {
+  return cachedSource(env, `511:${agency}:${stopCode}`, 90, src, async () => {
     const j = await fetchJson(
-      `https://api.511.org/transit/StopMonitoring?api_key=${env.API_511_KEY}&agency=CT&stopCode=${encodeURIComponent(c.originStation)}&format=json`,
+      `https://api.511.org/transit/StopMonitoring?api_key=${env.API_511_KEY}&agency=${agency}&stopCode=${encodeURIComponent(stopCode)}&format=json`,
     );
     const smd = j?.ServiceDelivery?.StopMonitoringDelivery;
     const visits: any[] = (Array.isArray(smd) ? smd[0] : smd)?.MonitoredStopVisit ?? [];
@@ -71,6 +61,31 @@ export async function caltrainDepartures(env: Env, prefs: Prefs, nowEpoch: numbe
     deps.sort((a, b) => a.epochMs - b.epochMs);
     return { departures: deps };
   });
+}
+
+export async function caltrainDepartures(env: Env, prefs: Prefs, nowEpoch: number): Promise<SourceResult<{ departures: Departure[] }>> {
+  const src = "Caltrain real-time (511.org)";
+  const c = prefs.caltrain;
+  if (!c.enabled) return off(src, "Caltrain disabled in preferences");
+  if (!env.API_511_KEY) {
+    const deps: Departure[] = [];
+    for (let i = 0; i < 4; i++) {
+      deps.push({ epochMs: nowEpoch + (7 + i * c.headwayMin) * 60_000, destination: c.destName, delayMin: i === 0 ? 3 : 0, line: i % 2 ? "Local" : "Limited" });
+    }
+    return mock(src, { departures: deps }, "No API_511_KEY — showing sample departures");
+  }
+  return stopMonitoring511(env, src, "CT", c.originStation);
+}
+
+/** ACE (Altamont Corridor Express). Live times via 511 (agency "CE") when a stop code is set; otherwise the timetable in prefs. */
+export async function aceDepartures(env: Env, prefs: Prefs): Promise<SourceResult<{ departures: Departure[] }>> {
+  const src = "ACE real-time (511.org)";
+  const a = prefs.ace;
+  if (!a?.enabled) return off(src, "ACE disabled in preferences");
+  if (!env.API_511_KEY || !a.originStation) {
+    return off(src, `Using your ACE timetable (${(a.departures ?? []).join(", ") || "none set"}) — add a 511 key and stop code for live times`);
+  }
+  return stopMonitoring511(env, src, "CE", a.originStation);
 }
 
 const parseClock = (t: string) => {

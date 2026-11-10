@@ -23,7 +23,12 @@ export const SJ_SF_PREFS: Prefs = {
     direction: "N", driveToStationMin: 9, parkingBufferMin: 6, rideMin: 62, egressMin: 4,
     headwayMin: 20, scheduleAnchor: "06:12", fareUsd: 8.25, parkingUsd: 5.5,
   },
+  ace: {
+    enabled: false, originStation: "", originName: "Tracy", destStation: "", destName: "Great America",
+    direction: "W", driveToStationMin: 18, parkingBufferMin: 6, rideMin: 85, egressMin: 10,
+    headwayMin: 60, scheduleAnchor: "05:00", fareUsd: 11.75, parkingUsd: 0, departures: [],
+  },
   weights: { time: 1, reliability: 1, cost: 0.5, early: 0.3 },
-  modeBias: { drive: 0, bart: 0, caltrain: 0 },
+  modeBias: { drive: 0, bart: 0, caltrain: 0, ace: 0 },
   alerts: { enabled: true, thresholdMin: 10 },
 };

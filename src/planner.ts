@@ -1,6 +1,6 @@
 // Deterministic planner: generates and scores every (mode × departure time) candidate.
 // The LLM explains and chooses *among these*; it never invents times or durations.
-import type { Departure, Leg, Mode, Option, Prefs, Snapshot, TransitPrefs } from "./types.ts";
+import type { Departure, Leg, Mode, Option, Prefs, Snapshot, TransitMode, TransitPrefs } from "./types.ts";
 import { fmt, hm } from "./time.ts";
 
 function erf(x: number) {
@@ -71,7 +71,7 @@ function rainAt(t: number, ctx: PlanContext): 0 | 1 | 2 {
   return 0;
 }
 
-function liveDeps(mode: "bart" | "caltrain", ctx: PlanContext): number[] {
+function liveDeps(mode: TransitMode, ctx: PlanContext): number[] {
   if (ctx.nowMin == null || ctx.simulated) return [];
   const src = ctx.snap[mode];
   if (src.status !== "live" && src.status !== "mock") return [];
@@ -79,11 +79,20 @@ function liveDeps(mode: "bart" | "caltrain", ctx: PlanContext): number[] {
   return (src.data?.departures ?? []).map((d: Departure) => now + (d.epochMs - ctx.snap.nowEpoch) / 60_000).filter((m) => m >= now - 1);
 }
 
-function nextTrain(at: number, tp: TransitPrefs, live: number[]) {
+const SYSTEM_NAME: Record<TransitMode, string> = { bart: "BART", caltrain: "Caltrain", ace: "ACE" };
+
+function nextTrain(at: number, tp: TransitPrefs, live: number[]): { dep: number; next: number; live: boolean } | null {
   const horizon = live.length ? live[live.length - 1] : -Infinity;
   if (at <= horizon) {
     const i = live.findIndex((m) => m >= at);
     if (i >= 0) return { dep: live[i], next: live[i + 1] ?? live[i] + tp.headwayMin, live: true };
+  }
+  const table = (tp.departures ?? []).filter((t) => /^\d{1,2}:\d{2}$/.test(t)).map(hm).sort((a, b) => a - b);
+  if (table.length) {
+    const i = table.findIndex((m) => m >= at);
+    if (i < 0) return null; // missed the last train
+    // Missing the last train is costly: model the "next" option as ~2 hours later (i.e. you'd drive instead).
+    return { dep: table[i], next: table[i + 1] ?? table[i] + 120, live: false };
   }
   const anchor = hm(tp.scheduleAnchor);
   const k = Math.ceil((at - anchor) / tp.headwayMin);
@@ -133,7 +142,7 @@ export function buildOptions(ctx: PlanContext): PlannerOutput {
     }
   }
   const isLive = ctx.nowMin != null && !ctx.simulated;
-  const all: Record<string, { o: Option; raw: Raw }[]> = { drive: [], bart: [], caltrain: [] };
+  const all: Record<Mode, { o: Option; raw: Raw }[]> = { drive: [], bart: [], caltrain: [], ace: [] };
   let evaluated = 0;
 
   for (let d = start; d <= end; d += 5) {
@@ -158,19 +167,20 @@ export function buildOptions(ctx: PlanContext): PlannerOutput {
       evaluated++;
     }
 
-    for (const mode of ["bart", "caltrain"] as const) {
+    for (const mode of ["bart", "caltrain", "ace"] as const) {
       const tp = p[mode];
-      if (!tp.enabled) continue;
+      if (!tp?.enabled) continue;
       const access = tp.driveToStationMin * (1 + (m - 1) * 0.35) * wf;
       const atPlatform = d + access + tp.parkingBufferMin;
       const train = nextTrain(atPlatform, tp, liveDeps(mode, ctx));
+      if (!train) continue;
       const egress = tp.egressMin + (rain ? 2 : 0);
       const arrive = train.dep + tp.rideMin + egress;
       const slack = train.dep - atPlatform;
       const pMiss = 1 - phi(slack / (1.5 + access * 0.08));
       const gap = train.next - train.dep;
       const sd = Math.sqrt(2.5 ** 2 + pMiss * (1 - pMiss) * gap ** 2);
-      const sys = mode === "bart" ? "BART" : "Caltrain";
+      const sys = SYSTEM_NAME[mode];
       const raw: Raw = {
         mode, depart: d, arrive: arrive + pMiss * gap, sd,
         cost: tp.fareUsd + tp.parkingUsd + (tp.driveToStationMin / 60) * 30 * p.drive.costPerMile,
@@ -187,7 +197,7 @@ export function buildOptions(ctx: PlanContext): PlannerOutput {
         ],
         quality: train.live ? "live" : isLive ? "fallback" : "forecast",
       };
-      const label = mode === "bart" ? `Drive to ${tp.originName} BART` : `Caltrain from ${tp.originName}`;
+      const label = mode === "bart" ? `Drive to ${tp.originName} BART` : `${sys} from ${tp.originName}`;
       all[mode].push({ o: toOption(mode, label, raw, ctx), raw });
       evaluated++;
     }
@@ -195,7 +205,7 @@ export function buildOptions(ctx: PlanContext): PlannerOutput {
 
   const best = (xs: { o: Option }[]) => xs.reduce<Option | null>((b, x) => (!b || x.o.score < b.score ? x.o : b), null);
   const options: Option[] = [];
-  for (const mode of ["drive", "bart", "caltrain"] as const) {
+  for (const mode of ["drive", "bart", "caltrain", "ace"] as const) {
     const b = best(all[mode]);
     if (b) options.push(b);
   }

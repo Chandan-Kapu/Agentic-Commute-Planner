@@ -103,7 +103,7 @@ section { margin-top: 40px; }
 .alt .icon { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; font-weight: 800; font-size: 12px; }
 .alt h4 { margin: 0; font-size: 15px; letter-spacing: -0.01em; } .alt p { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
 .alt .delta { font-size: 12px; font-weight: 600; color: var(--muted); text-align: right; }
-.icon-drive { background: var(--peach); } .icon-bart { background: var(--sky); } .icon-caltrain { background: var(--mint); }
+.icon-drive { background: var(--peach); } .icon-bart { background: var(--sky); } .icon-caltrain { background: var(--mint); } .icon-ace { background: var(--peach); }
 
 .alert { margin-bottom: 12px; padding: 16px 18px; border-radius: 18px; border: 1.5px solid var(--ink); background: var(--pink); box-shadow: 4px 4px 0 var(--ink); }
 .alert h4 { margin: 0 0 4px; font-size: 16px; } .alert p { margin: 0; }
@@ -169,7 +169,8 @@ dialog form { display: grid; gap: 12px; } dialog h3 { font-size: 22px; } dialog 
 .panel-head { display: flex; gap: 14px; align-items: flex-start; } .panel-head h2 { font-size: 24px; font-weight: 800; } .panel-head p { margin: 2px 0 0; font-size: 14px; }
 .step { flex: none; width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; font-weight: 800; background: var(--ink); color: var(--bg); box-shadow: 3px 3px 0 var(--accent); }
 .mode-card { display: grid; gap: 12px; padding: 14px; border-radius: 16px; background: var(--bg); border: 1px solid var(--line); }
-.c-sky-soft { background: color-mix(in srgb, var(--sky) 45%, var(--card)); } .c-mint-soft { background: color-mix(in srgb, var(--mint) 45%, var(--card)); }
+.c-sky-soft { background: color-mix(in srgb, var(--sky) 45%, var(--card)); } .c-peach-soft { background: color-mix(in srgb, var(--peach) 45%, var(--card)); } .muted.small { font-size: 12px; font-weight: 500; }
+.c-mint-soft { background: color-mix(in srgb, var(--mint) 45%, var(--card)); }
 .mode-card:has(> label.check input:not(:checked)) > :not(label.check) { opacity: .45; }
 label.check.big { font-weight: 700; font-size: 15px; }
 .row.r3 { grid-template-columns: repeat(3, 1fr); }
