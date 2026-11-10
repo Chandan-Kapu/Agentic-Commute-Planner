@@ -16,7 +16,8 @@ function makeDb(url: string, key: string) {
   async function q(path: string, init: RequestInit = {}): Promise<any> {
     const r = await fetch(base + path, {
       ...init,
-      headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...(init.headers ?? {}) },
+      // apikey alone authenticates server calls with both new (sb_secret_…) and legacy service_role keys.
+      headers: { apikey: key, "Content-Type": "application/json", ...(init.headers ?? {}) },
     });
     if (!r.ok) throw new Error(`Supabase ${r.status}: ${(await r.text()).slice(0, 200)}`);
     const t = await r.text();
