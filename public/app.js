@@ -1,5 +1,7 @@
 // Commute Agent UI — vanilla JS, no build step.
+import { BART, CALTRAIN, bartName, caltrainTrip } from "/stations.js";
 const $ = (s) => document.querySelector(s);
+const hm = (t) => { const [h, m] = String(t).split(":").map(Number); return (h || 0) * 60 + (m || 0); };
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const fmt = (min) => { const m = ((Math.round(min) % 1440) + 1440) % 1440, h = Math.floor(m / 60); return `${((h + 11) % 12) + 1}:${String(m % 60).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`; };
 const store = {
@@ -47,37 +49,99 @@ function renderAuth() {
   $("#prefsMeta").textContent = state.token ? "Saved to your account (Supabase)." : "Demo mode — saved in this browser only.";
 }
 
-// ---------- prefs ----------
+// ---------- prefs: "Your commute" + "Your stations" ----------
 const get = (o, path) => path.split(".").reduce((a, k) => a?.[k], o);
 const set = (o, path, v) => { const ks = path.split("."); let a = o; ks.slice(0, -1).forEach((k) => (a = a[k] ??= {})); a[ks.at(-1)] = v; };
+const SPECIAL = new Set(["origin", "destination", "workday"]);
+
+function fillStationLists() {
+  for (const sel of document.querySelectorAll("select[data-list]")) {
+    sel.innerHTML = sel.dataset.list === "bart"
+      ? BART.map(([a, n]) => `<option value="${a}">${esc(n)}</option>`).join("")
+      : CALTRAIN.map(([n]) => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
+  }
+}
 
 function fillForm(p) {
   const f = $("#prefsForm");
   f.origin.value = p.origin.label; f.destination.value = p.destination.label;
   for (const el of f.elements) {
-    if (!el.name || el.name === "origin" || el.name === "destination") continue;
+    if (!el.name || SPECIAL.has(el.name)) continue;
     const v = get(p, el.name);
     if (el.type === "checkbox") el.checked = !!v; else el.value = v ?? "";
   }
+  for (const el of f.querySelectorAll('input[name="workday"]')) el.checked = p.workdays.includes(Number(el.value));
   const b = p.modeBias || {};
   const learned = Object.entries(b).filter(([, v]) => v).map(([k, v]) => `${k} ${v < 0 ? "preferred" : "less preferred"} (${v > 0 ? "+" : ""}${v})`);
-  $("#bias").textContent = learned.length ? `Learned from your choices: ${learned.join(" · ")}` : "Tell it which option you took — it learns your mode preference.";
+  $("#bias").textContent = learned.length ? `Learned from your choices: ${learned.join(" · ")}` : "Use “I took this” on a plan and it learns which mode you prefer.";
+  stationNotes(p);
+}
+
+function stationNotes(p) {
+  $("#bartNote").textContent = p.bart.originStation === p.bart.destStation ? "Pick two different BART stations." :
+    `${bartName(p.bart.originStation)} → ${bartName(p.bart.destStation)}${p.bart.lineHeads?.length ? ` · trains toward ${p.bart.lineHeads.map(bartName).join(", ")}` : ""}`;
+  const ct = caltrainTrip(p.caltrain.originName, p.caltrain.destName);
+  $("#caltrainNote").textContent = ct ? `${ct.direction === "N" ? "Northbound" : "Southbound"} · 511 stop ${ct.originStation}` : "Pick two different Caltrain stations.";
+}
+
+// Rough drive estimate from straight-line distance, used until a routing key (Mapbox) gives live ETAs.
+function estimateDrive(o, d) {
+  const R = 3958.8, rad = Math.PI / 180;
+  const a = Math.sin(((d.lat - o.lat) * rad) / 2) ** 2 + Math.cos(o.lat * rad) * Math.cos(d.lat * rad) * Math.sin(((d.lon - o.lon) * rad) / 2) ** 2;
+  const miles = 2 * R * Math.asin(Math.sqrt(a)) * 1.25;
+  return { miles: Math.round(miles * 10) / 10, baselineMin: Math.max(5, Math.round((miles / 55) * 60 + 6)) };
 }
 
 async function readForm() {
   const f = $("#prefsForm");
   const p = structuredClone(state.prefs);
+  const before = { bart: `${p.bart.originStation}>${p.bart.destStation}`, ct: `${p.caltrain.originName}>${p.caltrain.destName}` };
   for (const el of f.elements) {
-    if (!el.name || el.name === "origin" || el.name === "destination") continue;
-    const v = el.type === "checkbox" ? el.checked : el.type === "number" ? Number(el.value) : el.value;
-    set(p, el.name, v);
+    if (!el.name || SPECIAL.has(el.name)) continue;
+    set(p, el.name, el.type === "checkbox" ? el.checked : el.type === "number" ? Number(el.value) : el.value);
   }
+  p.workdays = [...f.querySelectorAll('input[name="workday"]:checked')].map((el) => Number(el.value));
+  if (hm(p.earliestDepart) >= hm(p.latestDepart)) throw new Error("“Earliest I’d leave” must be before “Latest I’d leave”.");
+  if (!p.drive.enabled && !p.bart.enabled && !p.caltrain.enabled) throw new Error("Turn on at least one of driving, BART or Caltrain.");
+
+  let moved = false;
   for (const k of ["origin", "destination"]) {
     const q = f[k].value.trim();
     if (q && q !== p[k].label) {
       const { place } = await api(`/api/geocode?q=${encodeURIComponent(q)}`);
-      if (!place) throw new Error(`Couldn't find “${q}”`);
-      p[k] = place;
+      if (!place) throw new Error(`Couldn't find “${q}”. Try adding the city.`);
+      p[k] = place; moved = true;
+    }
+  }
+  if (moved) {
+    const est = estimateDrive(p.origin, p.destination);
+    p.drive.miles = est.miles;
+    if (Number(f["drive.baselineMin"].value) === state.prefs.drive.baselineMin) p.drive.baselineMin = est.baselineMin;
+    $("#geoNote").textContent = `Found: ${p.origin.label} → ${p.destination.label} (~${est.miles} mi by road)`;
+  }
+
+  if (p.bart.enabled) {
+    if (p.bart.originStation === p.bart.destStation) throw new Error("Pick two different BART stations.");
+    p.bart.originName = bartName(p.bart.originStation); p.bart.destName = bartName(p.bart.destStation);
+    if (`${p.bart.originStation}>${p.bart.destStation}` !== before.bart) {
+      p.bart.lineHeads = [];
+      try {
+        const t = await api(`/api/bart-trip?orig=${p.bart.originStation}&dest=${p.bart.destStation}`);
+        if (t.minutes) p.bart.rideMin = t.minutes;
+        p.bart.lineHeads = t.heads ?? [];
+        if (t.transfers) banner(`BART trip needs ${t.transfers} transfer(s) — ride time includes it.`);
+      } catch {
+        banner(`Couldn’t look up BART times for ${p.bart.originName} → ${p.bart.destName}. Check “Ride (min)” and “Drive to station” in Your stations.`);
+      }
+    }
+  }
+  if (p.caltrain.enabled) {
+    const ct = caltrainTrip(p.caltrain.originName, p.caltrain.destName);
+    if (!ct) throw new Error("Pick two different Caltrain stations.");
+    Object.assign(p.caltrain, { originStation: ct.originStation, destStation: ct.destStation, direction: ct.direction });
+    if (`${p.caltrain.originName}>${p.caltrain.destName}` !== before.ct) {
+      p.caltrain.rideMin = ct.rideMin;
+      banner(`Caltrain ride estimated at ${ct.rideMin} min — adjust “Ride (min)” if you usually take a Baby Bullet or local.`);
     }
   }
   return p;
@@ -86,20 +150,29 @@ async function readForm() {
 async function loadPrefs() {
   const local = store.get("prefs");
   const r = await api("/api/prefs");
-  state.prefs = r.signedIn ? r.prefs : local ?? r.prefs;
+  state.prefs = r.signedIn ? r.prefs : local ? { ...r.prefs, ...local } : r.prefs;
   fillForm(state.prefs);
 }
 
 $("#prefsForm").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const btn = e.submitter; btn.disabled = true;
+  const action = e.submitter?.value || "save";
+  const btns = [...e.currentTarget.querySelectorAll("button")]; btns.forEach((b) => (b.disabled = true));
   try {
     const p = await readForm();
     const r = await api("/api/prefs", { method: "PUT", body: JSON.stringify({ prefs: p }) });
     state.prefs = r.prefs; store.set("prefs", r.prefs); fillForm(r.prefs);
-    banner(r.saved ? "Preferences saved to your account." : "Preferences saved in this browser.");
-  } catch (err) { banner(err.message); } finally { btn.disabled = false; }
+    if (action === "save") banner(r.saved ? "Saved to your account." : "Saved in this browser.");
+    else await plan(action);
+  } catch (err) { banner(err.message); } finally { btns.forEach((b) => (b.disabled = false)); }
 });
+for (const sel of document.querySelectorAll("select[data-list]")) {
+  sel.addEventListener("change", () => {
+    const f = $("#prefsForm"), p = structuredClone(state.prefs);
+    for (const k of ["bart.originStation", "bart.destStation", "caltrain.originName", "caltrain.destName"]) set(p, k, f[k].value);
+    stationNotes(p);
+  });
+}
 
 // ---------- planning ----------
 function banner(msg) { const b = $("#banner"); b.textContent = msg; b.hidden = !msg; clearTimeout(banner.t); banner.t = setTimeout(() => (b.hidden = true), 6000); }
@@ -210,6 +283,7 @@ async function loadAlerts() {
     $("#flowModel").textContent = f.llm ? f.model : "deterministic planner";
     const h = new Date().getHours();
     $("#simOn").checked = h < 5 || h >= 10; // outside the morning window, simulate one
+    fillStationLists();
     await initAuth();
     await loadPrefs();
     renderAuth();

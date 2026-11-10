@@ -10,13 +10,16 @@ export async function bartDepartures(env: Env, prefs: Prefs): Promise<SourceResu
   const b = prefs.bart;
   if (!b.enabled) return off(src, "BART disabled in preferences");
   const st = encodeURIComponent(b.originStation);
-  const dir = b.direction === "s" ? "s" : "n";
-  return cachedSource(env, `bart:${b.originStation}:${dir}`, 60, src, async () => {
+  const heads = (b.lineHeads ?? []).map((h) => h.toUpperCase());
+  // Prefer filtering by the train lines that reach your destination; fall back to a direction filter.
+  const dirParam = heads.length ? "" : `&dir=${b.direction === "s" ? "s" : "n"}`;
+  return cachedSource(env, `bart:${b.originStation}:${heads.join(",") || dirParam}`, 60, src, async () => {
     const key = env.BART_API_KEY || BART_PUBLIC_KEY;
     const fetchedAt = Date.now();
-    const j = await fetchJson(`https://api.bart.gov/api/etd.aspx?cmd=etd&orig=${st}&dir=${dir}&key=${key}&json=y`);
+    const j = await fetchJson(`https://api.bart.gov/api/etd.aspx?cmd=etd&orig=${st}${dirParam}&key=${key}&json=y`);
     const deps: Departure[] = [];
     for (const e of j?.root?.station?.[0]?.etd ?? []) {
+      if (heads.length && !heads.includes(String(e.abbreviation ?? "").toUpperCase())) continue;
       for (const est of e.estimate ?? []) {
         const mins = est.minutes === "Leaving" ? 0 : Number(est.minutes);
         if (!Number.isFinite(mins)) continue;
@@ -68,4 +71,33 @@ export async function caltrainDepartures(env: Env, prefs: Prefs, nowEpoch: numbe
     deps.sort((a, b) => a.epochMs - b.epochMs);
     return { departures: deps };
   });
+}
+
+const parseClock = (t: string) => {
+  const m = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i.exec(String(t).trim());
+  if (!m) return NaN;
+  return ((Number(m[1]) % 12) + (m[3].toUpperCase() === "PM" ? 12 : 0)) * 60 + Number(m[2]);
+};
+
+/** BART trip planner: ride minutes + which train lines (head stations) to board, for the "Your stations" form. */
+export async function bartTrip(env: Env, orig: string, dest: string) {
+  const ok = /^[A-Z0-9]{4}$/;
+  if (!ok.test(orig) || !ok.test(dest) || orig === dest) throw new Error("bad stations");
+  const key = env.BART_API_KEY || BART_PUBLIC_KEY;
+  const j = await fetchJson(`https://api.bart.gov/api/sched.aspx?cmd=depart&orig=${orig}&dest=${dest}&date=today&time=8:00am&b=0&a=4&key=${key}&json=y`);
+  const trips: any[] = j?.root?.schedule?.request?.trip ?? [];
+  const mins: number[] = [];
+  const heads = new Set<string>();
+  let transfers = 0;
+  for (const t of trips) {
+    const tt = Number(t["@tripTime"]);
+    const m = Number.isFinite(tt) && tt > 0 ? tt : parseClock(t["@destTimeMin"]) - parseClock(t["@origTimeMin"]);
+    if (m > 0) mins.push(m);
+    const legs: any[] = Array.isArray(t.leg) ? t.leg : t.leg ? [t.leg] : [];
+    if (legs[0]?.["@trainHeadStation"]) heads.add(String(legs[0]["@trainHeadStation"]).toUpperCase());
+    transfers = Math.max(transfers, legs.length - 1);
+  }
+  if (!mins.length) throw new Error("no trips");
+  mins.sort((a, b) => a - b);
+  return { minutes: mins[Math.floor(mins.length / 2)], heads: [...heads], transfers };
 }

@@ -15,7 +15,7 @@
   <header class="nav">
     <a class="brand" href="/"><span class="brand-mark"><i></i><i></i></span>Commute Agent</a>
     <nav class="nav-links">
-      <a href="#plan">Plan</a><a href="#agent">Agent</a><a href="#sources">Sources</a><a href="#prefs">Preferences</a>
+      <a href="#setup">Your commute</a><a href="#plan">Plan</a><a href="#agent">Agent</a><a href="#sources">Sources</a>
     </nav>
     <div class="nav-right">
       <span id="agentPill" class="pill">Agent: …</span>
@@ -31,7 +31,8 @@
         <p class="lede">Pulls 511.org traffic, BART &amp; Caltrain real-time arrivals, Caltrans PeMS freeway speeds and weather — then weighs
           <b>“leave 7:40 and drive”</b> against <b>“drive to the BART station”</b> or <b>“wait it out”</b>, and pings you when it changes.</p>
         <div class="cta">
-          <button class="btn btn-dark" data-plan="night">Plan tomorrow</button>
+          <a class="btn btn-dark" href="#setup">Enter your commute</a>
+          <button class="btn btn-light" data-plan="night">Plan tomorrow</button>
           <button class="btn btn-light" data-plan="morning">Re-plan this morning</button>
           <label class="sim">Pretend it’s <input id="simNow" type="time" value="07:05" /> <input id="simOn" type="checkbox" /></label>
         </div>
@@ -54,6 +55,84 @@
       </div>
     </section>
 
+    <section id="setup">
+      <form id="prefsForm" class="setup">
+        <div class="card panel">
+          <div class="panel-head"><span class="step">1</span><div><h2>Your commute</h2><p class="muted">Where you start, where you’re going, and when you need to be there.</p></div></div>
+          <label>Start address<input name="origin" required autocomplete="street-address" placeholder="e.g. 4100 Dublin Blvd, Dublin, CA" /></label>
+          <label>Destination address<input name="destination" required placeholder="e.g. 415 Mission St, San Francisco, CA" /></label>
+          <p id="geoNote" class="hint"></p>
+          <div class="row">
+            <label>Arrive by<input name="arriveBy" type="time" required /></label>
+            <label>Arrival<select name="arrivalMode"><option value="by">Hard deadline</option><option value="flexible">Flexible — avoid traffic</option></select></label>
+          </div>
+          <div class="row">
+            <label>Earliest I’d leave<input name="earliestDepart" type="time" required /></label>
+            <label>Latest I’d leave<input name="latestDepart" type="time" required /></label>
+          </div>
+          <fieldset class="days"><legend>Workdays</legend>
+            <label><input type="checkbox" name="workday" value="1" />Mon</label><label><input type="checkbox" name="workday" value="2" />Tue</label>
+            <label><input type="checkbox" name="workday" value="3" />Wed</label><label><input type="checkbox" name="workday" value="4" />Thu</label>
+            <label><input type="checkbox" name="workday" value="5" />Fri</label><label><input type="checkbox" name="workday" value="6" />Sat</label>
+            <label><input type="checkbox" name="workday" value="0" />Sun</label>
+          </fieldset>
+          <div class="mode-card">
+            <label class="check big"><input name="drive.enabled" type="checkbox" /> Consider driving the whole way</label>
+            <div class="row r3">
+              <label>Main freeway<input name="drive.corridor" placeholder="US-101 N" /></label>
+              <label>No-traffic drive (min)<input name="drive.baselineMin" type="number" min="1" /></label>
+              <label>Parking at work ($)<input name="drive.parkingUsd" type="number" step="0.5" min="0" /></label>
+            </div>
+          </div>
+        </div>
+
+        <div class="card panel">
+          <div class="panel-head"><span class="step">2</span><div><h2>Your stations</h2><p class="muted">Where you’d catch the train and where you’d get off.</p></div></div>
+          <div class="mode-card c-sky-soft">
+            <label class="check big"><input name="bart.enabled" type="checkbox" /> BART</label>
+            <div class="row">
+              <label>Board at<select name="bart.originStation" data-list="bart"></select></label>
+              <label>Get off at<select name="bart.destStation" data-list="bart"></select></label>
+            </div>
+            <div class="row r3">
+              <label>Drive to station (min)<input name="bart.driveToStationMin" type="number" min="0" /></label>
+              <label>Ride (min)<input name="bart.rideMin" type="number" min="1" /></label>
+              <label>Walk to destination (min)<input name="bart.egressMin" type="number" min="0" /></label>
+            </div>
+            <p id="bartNote" class="hint"></p>
+          </div>
+          <div class="mode-card c-mint-soft">
+            <label class="check big"><input name="caltrain.enabled" type="checkbox" /> Caltrain</label>
+            <div class="row">
+              <label>Board at<select name="caltrain.originName" data-list="caltrain"></select></label>
+              <label>Get off at<select name="caltrain.destName" data-list="caltrain"></select></label>
+            </div>
+            <div class="row r3">
+              <label>Drive to station (min)<input name="caltrain.driveToStationMin" type="number" min="0" /></label>
+              <label>Ride (min)<input name="caltrain.rideMin" type="number" min="1" /></label>
+              <label>Walk to destination (min)<input name="caltrain.egressMin" type="number" min="0" /></label>
+            </div>
+            <p id="caltrainNote" class="hint"></p>
+          </div>
+          <details>
+            <summary>Alerts &amp; memory</summary>
+            <div class="row">
+              <label>Alert if plan shifts by ≥ (min)<input name="alerts.thresholdMin" type="number" min="3" max="60" /></label>
+              <label>Alert webhook (ntfy.sh or Slack)<input name="alerts.webhookUrl" type="url" placeholder="https://ntfy.sh/your-secret-topic" /></label>
+            </div>
+            <p id="bias" class="hint"></p>
+          </details>
+        </div>
+
+        <div class="setup-actions">
+          <span id="prefsMeta" class="muted"></span>
+          <button class="btn btn-light" type="submit" value="save">Save</button>
+          <button class="btn btn-dark" type="submit" value="night">Save &amp; plan tomorrow</button>
+          <button class="btn btn-dark" type="submit" value="morning">Save &amp; re-plan now</button>
+        </div>
+      </form>
+    </section>
+
     <div id="banner" class="banner" hidden></div>
 
     <section id="plan" class="grid">
@@ -61,7 +140,7 @@
         <div class="section-head"><h2>The plan</h2><span id="planMeta" class="muted"></span></div>
         <div id="alert" class="alert" hidden></div>
         <div id="rec" class="card rec empty">
-          <p class="muted">Press <b>Plan tomorrow</b> for a night-before plan, then <b>Re-plan this morning</b> to see what changed.</p>
+          <p class="muted">Enter <b>Your commute</b> and <b>Your stations</b> above, then press <b>Save &amp; plan tomorrow</b>. In the morning, <b>re-plan</b> to see what changed.</p>
         </div>
         <div id="alts" class="alts"></div>
         <ul id="warnings" class="warnings"></ul>
@@ -83,55 +162,6 @@
       <ul id="alertList" class="alert-list"><li class="muted">No alerts yet.</li></ul>
     </section>
 
-    <section id="prefs">
-      <div class="section-head"><h2>Preferences &amp; memory</h2><span id="prefsMeta" class="muted"></span></div>
-      <form id="prefsForm" class="card form">
-        <div class="row">
-          <label>From<input name="origin" required /></label>
-          <label>To<input name="destination" required /></label>
-        </div>
-        <div class="row r4">
-          <label>Arrive by<input name="arriveBy" type="time" /></label>
-          <label>Arrival<select name="arrivalMode"><option value="by">Hard deadline</option><option value="flexible">Flexible</option></select></label>
-          <label>Earliest leave<input name="earliestDepart" type="time" /></label>
-          <label>Latest leave<input name="latestDepart" type="time" /></label>
-        </div>
-        <div class="row r4">
-          <label class="check"><input name="drive.enabled" type="checkbox" /> Drive</label>
-          <label class="check"><input name="bart.enabled" type="checkbox" /> BART</label>
-          <label class="check"><input name="caltrain.enabled" type="checkbox" /> Caltrain</label>
-          <label>Alert if plan shifts ≥ (min)<input name="alerts.thresholdMin" type="number" min="3" max="60" /></label>
-        </div>
-        <details>
-          <summary>Route details (corridor, stations, timings)</summary>
-          <div class="row r4">
-            <label>Freeway corridor<input name="drive.corridor" /></label>
-            <label>Free-flow drive (min)<input name="drive.baselineMin" type="number" /></label>
-            <label>Miles<input name="drive.miles" type="number" step="0.1" /></label>
-            <label>Parking ($)<input name="drive.parkingUsd" type="number" step="0.5" /></label>
-          </div>
-          <div class="row r4">
-            <label>BART station (abbr)<input name="bart.originStation" /></label>
-            <label>BART station name<input name="bart.originName" /></label>
-            <label>Drive to BART (min)<input name="bart.driveToStationMin" type="number" /></label>
-            <label>BART ride (min)<input name="bart.rideMin" type="number" /></label>
-          </div>
-          <div class="row r4">
-            <label>Caltrain stop code (511)<input name="caltrain.originStation" /></label>
-            <label>Caltrain station name<input name="caltrain.originName" /></label>
-            <label>Drive to Caltrain (min)<input name="caltrain.driveToStationMin" type="number" /></label>
-            <label>Caltrain ride (min)<input name="caltrain.rideMin" type="number" /></label>
-          </div>
-          <div class="row">
-            <label>Alert webhook (ntfy.sh topic URL or Slack webhook)<input name="alerts.webhookUrl" type="url" placeholder="https://ntfy.sh/your-secret-topic" /></label>
-          </div>
-        </details>
-        <div class="row end">
-          <span id="bias" class="muted"></span>
-          <button class="btn btn-dark" type="submit">Save preferences</button>
-        </div>
-      </form>
-    </section>
   </main>
 
   <footer class="foot">

@@ -11,6 +11,15 @@ and pushes alerts such as *"US-101 N is backing up. Leave 15 minutes early (7:25
 - **Memory and storage:** Supabase (Postgres + Auth). Without it the app runs in browser-only demo mode.
 - **Data:** 511.org traffic + Caltrain, BART real-time ETD, Caltrans PeMS speeds (through a feed you supply), Open-Meteo weather, optional Mapbox live ETA
 
+## Using it
+
+1. **Your commute:** enter the start and destination addresses, arrive-by time, the earliest and latest you'd leave, and your workdays. Addresses are geocoded (Mapbox if `MAPBOX_TOKEN` is set, otherwise OpenStreetMap Nominatim), and the no-traffic drive time is estimated from distance. You can edit that estimate.
+2. **Your stations:** pick where you'd board and get off for BART and/or Caltrain from the dropdowns.
+   - **BART:** the ride time and the train lines to board come from BART's trip planner.
+   - **Caltrain:** the right 511 platform stop code (north/southbound) and a rough ride time are filled in for you.
+   - **Your own times:** add your drive-to-station and walk times.
+3. Press **Save & plan tomorrow** (the night-before plan), then **Save & re-plan now** in the morning.
+
 ## How it works
 
 ```

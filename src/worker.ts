@@ -5,6 +5,7 @@ import { DEFAULT_PREFS, withDefaults } from "./defaults.ts";
 import { db, verifyUser } from "./db.ts";
 import { makePlan } from "./plan.ts";
 import { geocode } from "./sources/route.ts";
+import { bartTrip } from "./sources/transit.ts";
 import { sendWebhook } from "./notify.ts";
 import { hm, localParts } from "./time.ts";
 
@@ -109,6 +110,16 @@ async function api(req: Request, env: Env, url: URL): Promise<Response> {
     const q = (url.searchParams.get("q") ?? "").trim().slice(0, 200);
     if (q.length < 3) throw new HttpError(400, "q too short");
     return json({ place: await geocode(env, q) });
+  }
+
+  if (p === "/api/bart-trip" && m === "GET") {
+    const orig = (url.searchParams.get("orig") ?? "").toUpperCase();
+    const dest = (url.searchParams.get("dest") ?? "").toUpperCase();
+    try {
+      return json(await bartTrip(env, orig, dest));
+    } catch (e: any) {
+      throw new HttpError(502, `BART trip lookup failed: ${e?.message ?? e}`);
+    }
   }
 
   throw new HttpError(404, "Not found");

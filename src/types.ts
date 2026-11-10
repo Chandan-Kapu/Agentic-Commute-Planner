@@ -22,6 +22,8 @@ export interface TransitPrefs {
   scheduleAnchor: string; // "HH:MM" of any scheduled departure, used with headway as a fallback timetable
   fareUsd: number;
   parkingUsd: number;
+  /** BART only: abbreviations of train destinations that reach destStation without going the wrong way. */
+  lineHeads?: string[];
 }
 
 export interface Prefs {
