@@ -14,6 +14,12 @@ Last updated: 2026-11-10 · Branch: `main`
 - Cron handler: night plan at ~9 PM and morning re-plans every 10 min
 - Tests: `npm test` (planner + alerts) and `npm run typecheck`
 
+## Deployed
+- **Live:** https://agentic-commute-planner.cdas2020kapu.workers.dev (Cloudflare Workers, cron every 10 min, KV cache `CACHE`)
+- Deploy from this repo with `npx wrangler deploy`. The UI is embedded into the Worker at build time (`scripts/embed-static.mjs`), so there is no separate asset upload.
+- **Secrets to add in the Cloudflare dashboard** (Workers & Pages → agentic-commute-planner → Settings → Variables and Secrets → type Secret): `NVIDIA_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `API_511_KEY`, optionally `ALERT_WEBHOOK_URL`. Also add `SUPABASE_ANON_KEY` (public) to enable sign-in.
+- Supabase project: `https://xmwwxyeddhbdahbxgxsj.supabase.co` (in `wrangler.toml`). Run `supabase/schema.sql` in its SQL Editor.
+
 ## Verified live (Nov 10, 2026, cloud environment `agentic-commute-planner`)
 - NVIDIA agent end to end: tool calls, valid choice, explanation (`nvidia/nemotron-3.5-lightning-30b-a3b`, ~11 s)
 - Model fallback guardrail: a model that returned no valid choice fell back to the deterministic pick

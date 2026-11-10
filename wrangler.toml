@@ -1,11 +1,12 @@
 name = "agentic-commute-planner"
-main = "src/worker.ts"
+main = "src/index.ts"
 compatibility_date = "2025-10-01"
 
-# Static UI (public/) is served by Workers Static Assets; /api/* falls through to the Worker.
-[assets]
-directory = "./public"
-binding = "ASSETS"
+# The UI in public/ is embedded into the Worker at build time (scripts/embed-static.mjs → src/static.gen.ts),
+# so deploys need no separate static-asset upload.
+[build]
+command = "node scripts/embed-static.mjs"
+watch_dir = "public"
 
 # Every 10 minutes. The Worker decides per user (in their time zone) whether it is
 # night-plan time (~9 PM) or inside the morning re-plan window.
@@ -21,11 +22,13 @@ NVIDIA_MODEL = "nvidia/nemotron-3.5-lightning-30b-a3b"
 NVIDIA_FALLBACK_MODEL = "nvidia/nemotron-3-ultra-550b-a55b"
 # Set to "true" to let the cron job call the LLM too (costs tokens + subrequests).
 CRON_LLM = "false"
+# Public project URL (not a secret). Keys go in Cloudflare secrets: SUPABASE_SERVICE_ROLE_KEY, NVIDIA_API_KEY, API_511_KEY.
+SUPABASE_URL = "https://xmwwxyeddhbdahbxgxsj.supabase.co"
 
 # Optional: shared cache across isolates (strongly recommended — 511.org allows ~60 req/hour per key).
 # npx wrangler kv namespace create CACHE   → paste the id below
-# [[kv_namespaces]]
-# binding = "CACHE"
-# id = "<your-kv-id>"
+[[kv_namespaces]]
+binding = "CACHE"
+id = "00ec3163032d4681ab69021040186347"
 
 # Secrets (npx wrangler secret put NAME) — see .dev.vars.example
