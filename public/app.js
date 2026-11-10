@@ -95,6 +95,7 @@ function estimateDrive(o, d) {
 async function readForm() {
   const f = $("#prefsForm");
   const p = structuredClone(state.prefs);
+  const notes = [];
   const before = { bart: `${p.bart.originStation}>${p.bart.destStation}`, ct: `${p.caltrain.originName}>${p.caltrain.destName}` };
   for (const el of f.elements) {
     if (!el.name || SPECIAL.has(el.name)) continue;
@@ -129,9 +130,9 @@ async function readForm() {
         const t = await api(`/api/bart-trip?orig=${p.bart.originStation}&dest=${p.bart.destStation}`);
         if (t.minutes) p.bart.rideMin = t.minutes;
         p.bart.lineHeads = t.heads ?? [];
-        if (t.transfers) banner(`BART trip needs ${t.transfers} transfer(s) — ride time includes it.`);
+        if (t.transfers) notes.push(`BART trip needs ${t.transfers} transfer(s) — ride time includes it.`);
       } catch {
-        banner(`Couldn’t look up BART times for ${p.bart.originName} → ${p.bart.destName}. Check “Ride (min)” and “Drive to station” in Your stations.`);
+        notes.push(`Couldn’t look up BART times for ${p.bart.originName} → ${p.bart.destName}. Check “Ride (min)” and “Drive to station” in Your stations.`);
       }
     }
   }
@@ -141,9 +142,10 @@ async function readForm() {
     Object.assign(p.caltrain, { originStation: ct.originStation, destStation: ct.destStation, direction: ct.direction });
     if (`${p.caltrain.originName}>${p.caltrain.destName}` !== before.ct) {
       p.caltrain.rideMin = ct.rideMin;
-      banner(`Caltrain ride estimated at ${ct.rideMin} min — adjust “Ride (min)” if you usually take a Baby Bullet or local.`);
+      notes.push(`Caltrain ride estimated at ${ct.rideMin} min — adjust “Ride (min)” if you usually take a Baby Bullet or local.`);
     }
   }
+  if (notes.length) banner(notes.join(" "));
   return p;
 }
 
