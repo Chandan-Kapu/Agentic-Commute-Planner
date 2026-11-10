@@ -18,6 +18,7 @@ Last updated: 2026-11-10 · Branch: `main`
 - NVIDIA agent end to end: tool calls, valid choice, explanation (`nvidia/nemotron-3.5-lightning-30b-a3b`, ~11 s)
 - Model fallback guardrail: a model that returned no valid choice fell back to the deterministic pick
 - BART real-time departures (public key), Open-Meteo weather, Nominatim geocoding
+- Cloudflare API token (stored as a network secret for `api.cloudflare.com`, Authorization: Bearer): token active, 1 account visible, and `wrangler whoami` works with `CLOUDFLARE_API_TOKEN=proxy-injected`. Ready to deploy (step 4).
 - Models on this account that do tool calling: nemotron-3.5-lightning-30b-a3b, nemotron-3-ultra-550b-a55b (slow), nemotron-3.5-super-vl-120b-a12b (unreliable JSON). Not enabled: meta/llama-3.3-70b-instruct and several others (404)
 
 ## Not yet verified
