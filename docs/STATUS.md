@@ -5,7 +5,7 @@ Last updated: 2026-11-10 · Branch: `claude/hopeful-johnson-a9lwgn`
 ## Done
 - Cloudflare Worker + static UI (`wrangler.toml`, `src/worker.ts`, `public/`)
 - **Your commute** inputs: start/destination addresses (geocoded), arrive-by (hard or flexible), departure window, workdays, drive options
-- **Your stations** inputs: BART and Caltrain board/get-off dropdowns (`public/stations.js`), BART trip lookup (`/api/bart-trip`), Caltrain platform code and direction
+- **Your stations** inputs: BART, Caltrain and ACE (fixed timetable) board/get-off dropdowns (`public/stations.js`), BART trip lookup (`/api/bart-trip`), Caltrain platform code and direction
 - Data adapters with cache and fallbacks (`src/sources/`): 511 traffic + Caltrain, BART ETD, PeMS feed, Open-Meteo weather, Mapbox ETA
 - Deterministic planner (`src/planner.ts`): mode × departure-time scoring, late risk, a wait-it-out option
 - NVIDIA NIM tool-calling agent with deterministic fallback (`src/agent.ts`)
@@ -32,7 +32,7 @@ Development ran with no API keys, and the session's network blocked BART, Open-M
    - Auto-suggest the nearest stations and estimate drive-to-station time
 6. PeMS: build the ingestion job that feeds `PEMS_FEED_URL`, or drop it in favor of 511/Mapbox speeds
 7. Production hardening: rate limiting on `/api/plan` and `/api/geocode`, Web Push (VAPID), error monitoring, end-to-end tests
-8. Consider adding ACE (Altamont Corridor Express): its Vasco/Tracy/Lathrop stations are near Mountain House, and its Great America station is at the destination
+8. ~~Add ACE~~ done (Tracy → Great America). To do: verify the default train times (05:00, 06:15, 07:20, 07:45 from Tracy are placeholders) against acerail.com, and find the 511 stop code for live ACE times
 9. Merge this branch into `main` (the repo has no default branch content yet)
 
 ## Resume locally

@@ -14,9 +14,10 @@ and pushes alerts such as *"US-101 N is backing up. Leave 15 minutes early (7:25
 ## Using it
 
 1. **Your commute:** enter the start and destination addresses, arrive-by time, the earliest and latest you'd leave, and your workdays. Addresses are geocoded (Mapbox if `MAPBOX_TOKEN` is set, otherwise OpenStreetMap Nominatim), and the no-traffic drive time is estimated from distance. You can edit that estimate.
-2. **Your stations:** pick where you'd board and get off for BART and/or Caltrain from the dropdowns.
+2. **Your stations:** pick where you'd board and get off for BART, Caltrain and/or ACE from the dropdowns.
    - **BART:** the ride time and the train lines to board come from BART's trip planner.
    - **Caltrain:** the right 511 platform stop code (north/southbound) and a rough ride time are filled in for you.
+   - **ACE:** ACE runs only a few morning trains, so enter the train times at your boarding station (from acerail.com). The ride time is estimated from the stations. For live ACE times, set a 511 key and the 511 stop code (agency `CE`).
    - **Your own times:** add your drive-to-station and walk times.
 3. Press **Save & plan tomorrow** (the night-before plan), then **Save & re-plan now** in the morning.
 
@@ -80,6 +81,7 @@ With no keys, the app still runs. Sources show **MOCK / ERROR / OFF** badges, an
 | 511.org traffic events + Caltrain StopMonitoring | Free key from 511.org/open-data/token | Default quota is about 60 requests/hour per key. Responses are cached for 5 min (traffic) and 90 s (Caltrain). Request a higher limit before going multi-user. |
 | BART ETD | Public demo key built in | Register your own key for production. Station codes are abbreviations (`DUBL`, `BERY`, `MONT`, …). |
 | Caltrans PeMS | **No public real-time API** (account + 5-min station files) | Set `PEMS_FEED_URL` to a JSON feed you produce: `{"corridors":{"US-101 N":{"speedMph":34,"freeFlowMph":65}}}`. Without it, a typical weekday speed profile is used (marked MOCK). |
+| ACE | Timetable you enter, or 511 StopMonitoring (agency `CE`) with a stop code | The default Tracy times are approximate placeholders. Verify them. |
 | Weather | Open-Meteo, no key | Commercial use needs an Open-Meteo plan, or switch to api.weather.gov. |
 | Live drive ETA / geocoding | Optional `MAPBOX_TOKEN` | Without it, geocoding uses Nominatim (low volume only) and drive time comes from speeds + profile. |
 
