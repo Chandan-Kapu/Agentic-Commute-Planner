@@ -1,0 +1,15 @@
+# Copy to .dev.vars for `npm run dev`; use `npx wrangler secret put NAME` in production.
+# Everything is optional — missing sources fall back to clearly-labelled mock data.
+NVIDIA_API_KEY=nvapi-...
+SUPABASE_URL=https://<project>.supabase.co
+SUPABASE_ANON_KEY=eyJ...
+SUPABASE_SERVICE_ROLE_KEY=eyJ...
+API_511_KEY=...
+# BART has a public demo key built in; get your own at api.bart.gov for production.
+BART_API_KEY=
+# Optional live drive-time ETA (Mapbox driving-traffic profile) + better geocoding.
+MAPBOX_TOKEN=
+# URL of a JSON feed with Caltrans PeMS corridor speeds (see README: PeMS has no public realtime API).
+PEMS_FEED_URL=
+# Default alert destination (ntfy.sh topic URL, Slack incoming webhook, or any HTTPS JSON webhook).
+ALERT_WEBHOOK_URL=

@@ -1,0 +1,28 @@
+name = "agentic-commute-planner"
+main = "src/worker.ts"
+compatibility_date = "2025-10-01"
+
+# Static UI (public/) is served by Workers Static Assets; /api/* falls through to the Worker.
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+# Every 10 minutes. The Worker decides per user (in their time zone) whether it is
+# night-plan time (~9 PM) or inside the morning re-plan window.
+[triggers]
+crons = ["*/10 * * * *"]
+
+[vars]
+TIMEZONE = "America/Los_Angeles"
+NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1"
+NVIDIA_MODEL = "meta/llama-3.3-70b-instruct"
+# Set to "true" to let the cron job call the LLM too (costs tokens + subrequests).
+CRON_LLM = "false"
+
+# Optional: shared cache across isolates (strongly recommended — 511.org allows ~60 req/hour per key).
+# npx wrangler kv namespace create CACHE   → paste the id below
+# [[kv_namespaces]]
+# binding = "CACHE"
+# id = "<your-kv-id>"
+
+# Secrets (npx wrangler secret put NAME) — see .dev.vars.example
