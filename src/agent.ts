@@ -106,7 +106,8 @@ When finished, reply with ONLY a JSON object:
 
 export async function runAgent(env: Env, prefs: Prefs, snap: Snapshot, plan: PlannerOutput, kind: "night" | "morning"): Promise<AgentOutput> {
   if (!env.NVIDIA_API_KEY) return deterministicAgent(prefs, snap, plan);
-  const model = env.NVIDIA_MODEL || "meta/llama-3.3-70b-instruct";
+  const models = [env.NVIDIA_MODEL || "nvidia/nemotron-3.5-lightning-30b-a3b", env.NVIDIA_FALLBACK_MODEL].filter(Boolean) as string[];
+  let model = models[0];
   const base = (env.NVIDIA_BASE_URL || "https://integrate.api.nvidia.com/v1").replace(/\/$/, "");
   const trace: TraceStep[] = [];
   const messages: any[] = [
@@ -126,8 +127,26 @@ export async function runAgent(env: Env, prefs: Prefs, snap: Snapshot, plan: Pla
           headers: { Authorization: `Bearer ${env.NVIDIA_API_KEY}`, "Content-Type": "application/json", Accept: "application/json" },
           body: JSON.stringify({ model, messages, tools: TOOLS, tool_choice: "auto", temperature: 0.2, max_tokens: 900 }),
         });
-        if (!r.ok) throw new Error(`NVIDIA API HTTP ${r.status}`);
+        if (!r.ok) {
+          // Model not enabled for this account (404), overloaded (5xx/429): switch to the fallback model once.
+          const next = models[models.indexOf(model) + 1];
+          if (next && (r.status === 404 || r.status === 429 || r.status >= 500)) {
+            trace.push({ kind: "warn", title: "Model fallback", detail: `${model} returned HTTP ${r.status}; switching to ${next}` });
+            model = next;
+            step--;
+            continue;
+          }
+          throw new Error(`NVIDIA API HTTP ${r.status}`);
+        }
         j = await r.json();
+      } catch (e: any) {
+        const next = models[models.indexOf(model) + 1];
+        if (e?.name === "AbortError" && next) {
+          trace.push({ kind: "warn", title: "Model fallback", detail: `${model} timed out; switching to ${next}` });
+          model = next;
+          continue;
+        }
+        throw e;
       } finally { clearTimeout(timer); }
       const msg = j?.choices?.[0]?.message;
       if (!msg) throw new Error("empty response");

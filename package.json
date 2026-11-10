@@ -7,7 +7,8 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "typecheck": "tsc --noEmit",
-    "test": "node --test test/*.test.ts"
+    "test": "node --test test/*.test.ts",
+    "dev:node": "NODE_USE_ENV_PROXY=1 node scripts/node-dev.ts"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261109.1",

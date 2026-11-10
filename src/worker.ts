@@ -13,7 +13,11 @@ const json = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
 
 class HttpError extends Error {
-  constructor(public status: number, msg: string) { super(msg); }
+  status: number;
+  constructor(status: number, msg: string) {
+    super(msg);
+    this.status = status;
+  }
 }
 
 async function body(req: Request): Promise<any> {
@@ -43,7 +47,7 @@ async function api(req: Request, env: Env, url: URL): Promise<Response> {
       supabaseAnonKey: env.SUPABASE_ANON_KEY ?? null,
       timezone: tzOf(env),
       features: {
-        llm: !!env.NVIDIA_API_KEY, model: env.NVIDIA_API_KEY ? env.NVIDIA_MODEL ?? "meta/llama-3.3-70b-instruct" : null,
+        llm: !!env.NVIDIA_API_KEY, model: env.NVIDIA_API_KEY ? env.NVIDIA_MODEL ?? "nvidia/nemotron-3.5-lightning-30b-a3b" : null,
         db: !!(env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY), k511: !!env.API_511_KEY,
         mapbox: !!env.MAPBOX_TOKEN, pems: !!env.PEMS_FEED_URL, bartOwnKey: !!env.BART_API_KEY,
       },

@@ -64,6 +64,12 @@ npm run dev                      # http://localhost:8787
 npm test && npm run typecheck
 ```
 
+Behind an HTTPS proxy (corporate network, cloud sandbox)? The local Worker runtime (workerd) ignores `HTTPS_PROXY`, so outbound API calls fail with "internal error". Run the same Worker code in Node instead:
+
+```bash
+npm run dev:node
+```
+
 With no keys, the app still runs. Sources show **MOCK / ERROR / OFF** badges, and the plan warns you not to rely on it.
 
 ## Deploy to Cloudflare

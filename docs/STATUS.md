@@ -14,10 +14,15 @@ Last updated: 2026-11-10 · Branch: `main`
 - Cron handler: night plan at ~9 PM and morning re-plans every 10 min
 - Tests: `npm test` (planner + alerts) and `npm run typecheck`
 
+## Verified live (Nov 10, 2026, cloud environment `agentic-commute-planner`)
+- NVIDIA agent end to end: tool calls, valid choice, explanation (`nvidia/nemotron-3.5-lightning-30b-a3b`, ~11 s)
+- Model fallback guardrail: a model that returned no valid choice fell back to the deterministic pick
+- BART real-time departures (public key), Open-Meteo weather, Nominatim geocoding
+- Models on this account that do tool calling: nemotron-3.5-lightning-30b-a3b, nemotron-3-ultra-550b-a55b (slow), nemotron-3.5-super-vl-120b-a12b (unreliable JSON). Not enabled: meta/llama-3.3-70b-instruct and several others (404)
+
 ## Not yet verified
 Development ran with no API keys, and the session's network blocked BART, Open-Meteo and Nominatim, so:
 - None of the live API parsers (511, BART ETD and trip planner, Open-Meteo, Mapbox, Nominatim) has run against real responses
-- The NVIDIA agent loop has not been called against the real API
 - The Supabase flows (sign-in, saving prefs, plans, alerts, the cron job) have not been run against a real project
 - Caltrain stop codes (`70xx1` northbound / `70xx2` southbound) need checking against 511 GTFS
 

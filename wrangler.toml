@@ -15,7 +15,10 @@ crons = ["*/10 * * * *"]
 [vars]
 TIMEZONE = "America/Los_Angeles"
 NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1"
-NVIDIA_MODEL = "meta/llama-3.3-70b-instruct"
+# Tested on this account (Nov 2026): lightning ≈ 11 s per plan with accurate explanations; ultra ≈ 50 s.
+NVIDIA_MODEL = "nvidia/nemotron-3.5-lightning-30b-a3b"
+# Used automatically if NVIDIA_MODEL errors (404 not enabled for the account, 5xx, timeout).
+NVIDIA_FALLBACK_MODEL = "nvidia/nemotron-3-ultra-550b-a55b"
 # Set to "true" to let the cron job call the LLM too (costs tokens + subrequests).
 CRON_LLM = "false"
 
