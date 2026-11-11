@@ -43,8 +43,10 @@ export async function makePlan(env: Env, req: PlanRequest): Promise<PlanResult> 
     .map((s) => ({ name: s.source, status: s.status, note: s.note }));
   const warnings = [...plan.warnings];
   if (simulated) warnings.push(`Simulating ${req.simulateNow} — live traffic applied, live train times ignored.`);
-  if (sources.some((s) => s.status === "mock")) warnings.push("Some sources are demo data (missing API keys) — don't rely on this plan yet.");
-  if (sources.some((s) => s.status === "error")) warnings.push("Some live sources failed; those factors use typical schedules/profiles.");
+  const mocked = sources.filter((s) => s.status === "mock").map((s) => s.name);
+  const failed = sources.filter((s) => s.status === "error").map((s) => s.name);
+  if (mocked.length) warnings.push(`Sample data used for: ${mocked.join(", ")}. Those factors are typical patterns, not live.`);
+  if (failed.length) warnings.push(`Unavailable right now: ${failed.join(", ")}. Typical schedules/profiles used instead.`);
 
   const result: PlanResult = {
     kind: req.kind,

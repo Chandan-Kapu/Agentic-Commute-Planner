@@ -214,8 +214,9 @@ export async function runAgent(env: Env, prefs: Prefs, snap: Snapshot, plan: Pla
         continue;
       }
       const text = String(msg.content ?? "").replace(/<think>[\s\S]*?<\/think>/g, "").trim();
-      if (text) trace.push({ kind: "think", title: "Model reasoning", detail: text.slice(0, 280) });
       const parsed = parseChoice(text);
+      // Show the model's prose only; a valid JSON answer is already rendered as the summary + reasons.
+      if (text && !parsed) trace.push({ kind: "think", title: "Model reasoning", detail: text.slice(0, 280) });
       const chosen = parsed && matchOption(plan.options, parsed.choice);
       if (!chosen) {
         if (!repaired) {
