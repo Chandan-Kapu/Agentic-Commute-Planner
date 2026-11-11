@@ -7,7 +7,7 @@ const assets = {
   async fetch(req: Request): Promise<Response> {
     let p = new URL(req.url).pathname;
     if (p.endsWith("/")) p += "index.html";
-    const f = STATIC[p];
+    const f = STATIC[p] ?? STATIC[`${p}.html`]; // /help → /help.html
     if (!f) return new Response("Not found", { status: 404 });
     return new Response(f.body, {
       headers: { "Content-Type": f.type, "Cache-Control": p.endsWith(".html") ? "no-cache" : "public, max-age=300" },

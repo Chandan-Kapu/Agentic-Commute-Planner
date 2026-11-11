@@ -29,6 +29,7 @@ env.ASSETS = {
   async fetch(req: Request) {
     let p = decodeURIComponent(new URL(req.url).pathname);
     if (p.endsWith("/")) p += "index.html";
+    if (!extname(p) && existsSync(join(root, "public", p + ".html"))) p += ".html"; // /help → /help.html
     const file = normalize(join(root, "public", p));
     if (!file.startsWith(join(root, "public")) || !existsSync(file)) return new Response("Not found", { status: 404 });
     return new Response(await readFile(file), { headers: { "Content-Type": TYPES[extname(file)] ?? "application/octet-stream" } });

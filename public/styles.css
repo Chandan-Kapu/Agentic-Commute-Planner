@@ -230,3 +230,12 @@ label.check.big { font-weight: 700; font-size: 15px; }
   .flow > .flow-col:last-child { display: flex; flex-basis: 100%; align-items: center; margin-top: 14px; }
   .flow > .flow-col:last-child .chip { max-width: none; white-space: nowrap; }
 }
+
+/* "Help to use" links */
+.help-link { font-size: 13px; font-weight: 700; color: var(--ink); text-decoration: none; padding: 6px 12px; border-radius: 999px; background: var(--lilac); white-space: nowrap; }
+.help-link:hover { background: var(--pink); }
+.help-inline { font-size: 13px; font-weight: 600; color: var(--pink-ink); text-decoration: none; margin-right: auto; }
+.help-inline:hover { text-decoration: underline; }
+.setup-actions .muted { margin-right: 0; }
+.foot a { color: inherit; font-weight: 600; }
+@media (max-width: 560px) { .help-link { padding: 6px 10px; font-size: 12px; } .help-inline { flex-basis: 100%; } }

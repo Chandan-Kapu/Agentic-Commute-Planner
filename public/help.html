@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Help to Use · Commute Agent</title>
+  <meta name="author" content="CHANDAN DAS" />
+  <meta name="description" content="Step-by-step guide to the Commute Agent: what to enter, what is required, and what you get." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='9' fill='%23111'/><circle cx='11' cy='16' r='4' fill='%23ff6ec7'/><circle cx='22' cy='16' r='4' fill='%23b9a8ff'/></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+  <style>
+    .guide { max-width: 860px; margin: 0 auto; padding: 0 16px 56px; }
+    .guide-hero { padding: 48px 0 8px; }
+    .guide-hero h1 { font-size: clamp(34px, 5vw, 52px); margin: 14px 0 10px; }
+    .guide-hero p { color: var(--muted); font-size: 16px; margin: 0; max-width: 620px; }
+    .legend-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    .req, .opt { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
+    .req { background: var(--pink); color: var(--pink-ink); } .opt { background: var(--bg); color: var(--muted); border: 1px solid var(--line); }
+    .gstep { margin-top: 18px; }
+    .gstep h2 { display: flex; align-items: center; gap: 12px; font-size: 21px; font-weight: 800; margin-bottom: 4px; }
+    .gstep > p { margin: 4px 0 10px; color: var(--muted); }
+    .fields { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .fields th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 600; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+    .fields td { padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    .fields tr:last-child td { border-bottom: 0; }
+    .fields td:first-child { font-weight: 600; width: 34%; }
+    .fields td:nth-child(2) { width: 120px; }
+    .benefits { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .benefits li { background: var(--bg); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; font-size: 14px; }
+    .benefits b { display: block; margin-bottom: 2px; } .benefits strong { font-weight: 600; }
+    .tips { margin: 0; padding-left: 18px; color: var(--muted); } .tips li { margin: 4px 0; }
+    .back { margin-top: 22px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    code { font-size: 13px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 1px 5px; overflow-wrap: anywhere; }
+    @media (max-width: 600px) {
+      .benefits { grid-template-columns: 1fr; }
+      .fields, .fields tbody, .fields tr, .fields td { display: block; width: 100% !important; }
+      .fields thead { display: none; }
+      .fields tr { padding: 10px 0; border-bottom: 1px solid var(--line); } .fields tr:last-child { border-bottom: 0; }
+      .fields td { border: 0; padding: 2px 0; }
+    }
+  </style>
+</head>
+<body>
+  <header class="nav">
+    <a class="brand" href="/"><span class="brand-mark"><i></i><i></i></span>Commute Agent</a>
+    <nav class="nav-links"><a href="/#setup">Your commute</a><a href="/#plan">Plan</a></nav>
+    <div class="nav-right"><a class="btn btn-dark btn-sm" href="/">Open the planner</a></div>
+  </header>
+
+  <main class="guide">
+    <section class="guide-hero">
+      <span class="eyebrow">Help to use</span>
+      <h1>Plan your commute in <em>5 steps.</em></h1>
+      <p>Enter where you start, where you’re going and when you need to arrive. The agent checks live traffic, BART, Caltrain, ACE and weather, tells you when to leave and how to go, and alerts you if that changes.</p>
+      <div class="legend-row"><span class="req">Required</span><span class="muted">needed to plan</span><span class="opt">Optional</span><span class="muted">improves the plan</span></div>
+    </section>
+
+    <section class="card gstep">
+      <h2><span class="step">1</span>Sign in <span class="opt">Optional · recommended</span></h2>
+      <p>Click <b>Sign in</b> (top right), enter your email and open the link you receive.</p>
+      <ul class="tips">
+        <li><b>You get:</b> settings saved on any device, plus <b>automatic</b> 9 PM plans and morning alerts.</li>
+        <li><b>Without sign-in:</b> everything still works, but it’s saved only in this browser and you press the buttons yourself.</li>
+      </ul>
+    </section>
+
+    <section class="card gstep">
+      <h2><span class="step">2</span>Your commute</h2>
+      <table class="fields">
+        <thead><tr><th>Field</th><th>Needed?</th><th>What to enter</th></tr></thead>
+        <tbody>
+          <tr><td>Start address</td><td><span class="req">Required</span></td><td>Where you leave from, e.g. <i>Mountain House Pkwy, Mountain House, CA</i></td></tr>
+          <tr><td>Destination address</td><td><span class="req">Required</span></td><td>Where you’re going, e.g. <i>Great America Pkwy, Santa Clara, CA</i></td></tr>
+          <tr><td>Arrive by</td><td><span class="req">Required</span></td><td>e.g. <i>9:00 AM</i></td></tr>
+          <tr><td>Arrival</td><td><span class="req">Required</span></td><td><b>Hard deadline</b> = must be on time · <b>Flexible</b> = OK to arrive a bit later to avoid traffic (preset)</td></tr>
+          <tr><td>Earliest / Latest I’d leave</td><td><span class="req">Required</span></td><td>Your departure window, e.g. <i>7:00–8:00 AM</i>. Earliest must be before latest.</td></tr>
+          <tr><td>Workdays</td><td><span class="opt">Optional</span></td><td>The days you commute (preset Mon–Fri)</td></tr>
+          <tr><td>Drive the whole way</td><td><span class="opt">Optional</span></td><td>Turn on to compare driving; add your main freeway and parking cost if you know them</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card gstep">
+      <h2><span class="step">3</span>Your stations</h2>
+      <p>Turn on <b>at least one</b> way to travel: Drive, BART, Caltrain or ACE. <span class="req">Required</span> For each train you turn on:</p>
+      <table class="fields">
+        <thead><tr><th>Field</th><th>Needed?</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td>Board at / Get off at</td><td><span class="req">Required</span></td><td>Pick from the list; the two must be different</td></tr>
+          <tr><td>ACE train times</td><td><span class="req">Required for ACE</span></td><td>Morning times at your station, e.g. <i>06:15, 07:20</i> (see acerail.com)</td></tr>
+          <tr><td>Drive to station (min)</td><td><span class="opt">Recommended</span></td><td>Your usual drive to the station</td></tr>
+          <tr><td>Ride (min)</td><td><span class="opt">Auto-filled</span></td><td>Change it if you know better</td></tr>
+          <tr><td>Walk / shuttle to destination</td><td><span class="opt">Recommended</span></td><td>Minutes from the last station to your door</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card gstep">
+      <h2><span class="step">4</span>Alerts <span class="opt">Optional</span></h2>
+      <p>Open <b>Alerts &amp; memory</b> under Your stations.</p>
+      <ul class="tips">
+        <li><b>Alert if plan shifts by:</b> how many minutes of change should trigger an alert (preset 10).</li>
+        <li><b>Alert webhook:</b> to get alerts on your phone, install the <b>ntfy</b> app, subscribe to a private topic and paste <code>https://ntfy.sh/your-topic</code>.</li>
+      </ul>
+    </section>
+
+    <section class="card gstep">
+      <h2><span class="step">5</span>Get your plan</h2>
+      <ul class="tips">
+        <li><b>Save &amp; plan tomorrow</b>: the night-before plan.</li>
+        <li><b>Save &amp; re-plan now</b>: uses live conditions this morning and shows what changed.</li>
+        <li><b>Pretend it’s …</b> (top of the page): try a morning re-plan at any time of day.</li>
+      </ul>
+    </section>
+
+    <section class="card gstep">
+      <h2>What you get</h2>
+      <ul class="benefits">
+        <li><b>✅ Best way to go</b>Leave time, arrival time, chance of being late and cost.</li>
+        <li><b>🔁 Alternatives</b>e.g. drive vs. Dublin BART vs. ACE vs. waiting until traffic eases.</li>
+        <li><b>🤖 Why it chose that</b>The AI agent shows which data it checked and how it decided.</li>
+        <li><b>🟢 Live data status</b>Green = live, amber = sample data, red = source unavailable.</li>
+        <li><b>🔔 Alerts</b>e.g. “I-580 is backing up. Leave 15 min early, or take ACE.”</li>
+        <li><b>🧠 Learns you</b>Press <strong>I took this</strong> and future plans lean toward the modes you actually use.</li>
+      </ul>
+    </section>
+
+    <section class="card gstep">
+      <h2>Tips</h2>
+      <ul class="tips">
+        <li>Address not found? Add the city and “CA”.</li>
+        <li>A plan takes about 10 seconds while the AI agent checks the data.</li>
+        <li>This is a planning aid, not a safety system. Always check conditions yourself.</li>
+      </ul>
+    </section>
+
+    <div class="back">
+      <a class="btn btn-dark" href="/#setup">Start planning →</a>
+      <a class="btn btn-light" href="https://github.com/Chandan-Kapu/Agentic-Commute-Planner/blob/main/docs/USER_GUIDE.md">This guide on GitHub</a>
+    </div>
+  </main>
+
+  <footer class="foot">
+    <span class="owner">Created by <b>CHANDAN DAS</b> · © 2026 CHANDAN DAS. All rights reserved.</span>
+    <span class="muted">Not a safety system. Always check conditions yourself.</span>
+  </footer>
+</body>
+</html>
