@@ -186,3 +186,8 @@ label.check.big { font-weight: 700; font-size: 15px; }
 .setup-actions .muted { margin-right: auto; font-size: 13px; }
 @media (max-width: 900px) { .setup { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 560px) { .row.r3 { grid-template-columns: 1fr 1fr; } .setup-actions .btn { flex: 1 1 auto; } }
+
+/* creator credit */
+.byline { display: inline-block; margin-left: 10px; font-size: 13px; color: var(--muted); vertical-align: middle; }
+.byline b { color: var(--ink); letter-spacing: .02em; }
+.foot .owner { flex-basis: 100%; color: var(--ink); }
