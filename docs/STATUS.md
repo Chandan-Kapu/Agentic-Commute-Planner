@@ -20,6 +20,13 @@ Last updated: 2026-11-10 · Branch: `main`
 - **Secrets to add in the Cloudflare dashboard** (Workers & Pages → agentic-commute-planner → Settings → Variables and Secrets → type Secret): `NVIDIA_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `API_511_KEY`, optionally `ALERT_WEBHOOK_URL`. Also add `SUPABASE_ANON_KEY` (public) to enable sign-in.
 - Supabase project: `https://xmwwxyeddhbdahbxgxsj.supabase.co` (in `wrangler.toml`). Run `supabase/schema.sql` in its SQL Editor.
 
+## Verified on the live site (Nov 11, 2026)
+- Secrets set in Cloudflare: `NVIDIA_API_KEY`, `API_511_KEY`, `SUPABASE_SERVICE_ROLE_KEY`; `SUPABASE_ANON_KEY` (publishable) in `wrangler.toml`
+- LIVE: 511 traffic, 511 Caltrain, BART, weather. MOCK: PeMS (no feed). OFF: Mapbox, ACE live (needs 511 stop code)
+- Supabase tables `profiles`, `plans`, `alerts`, `feedback` exist (RLS on)
+- NVIDIA agent on the live site: ~10–12 s per plan (2 model calls). Speedups: thinking off (`chat_template_kwargs.enable_thinking=false`) and a tool-results briefing in the first message. 30 s budget (`NVIDIA_BUDGET_MS`), then the planner's pick is returned
+- Not yet tested: magic-link sign-in, saving prefs/plans/alerts as a signed-in user, the cron job writing plans and sending alerts
+
 ## Verified live (Nov 10, 2026, cloud environment `agentic-commute-planner`)
 - NVIDIA agent end to end: tool calls, valid choice, explanation (`nvidia/nemotron-3.5-lightning-30b-a3b`, ~11 s)
 - Model fallback guardrail: a model that returned no valid choice fell back to the deterministic pick

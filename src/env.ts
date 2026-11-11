@@ -5,6 +5,7 @@ export interface Env {
   NVIDIA_API_KEY?: string;
   NVIDIA_MODEL?: string;
   NVIDIA_FALLBACK_MODEL?: string;
+  NVIDIA_BUDGET_MS?: string;
   NVIDIA_BASE_URL?: string;
   SUPABASE_URL?: string;
   SUPABASE_ANON_KEY?: string;

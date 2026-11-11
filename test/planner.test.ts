@@ -83,3 +83,13 @@ test("ACE uses its fixed timetable and is skipped after the last train", async (
   const late = withDefaults({ ...prefs, earliestDepart: "07:40", latestDepart: "08:00" });
   assert.throws(() => buildOptions({ prefs: late, snap: snap(), targetDate: "2026-11-11", nowMin: null }), /No modes/);
 });
+
+test("agent output parsing accepts fenced JSON, prose-wrapped JSON and option labels", async () => {
+  const { parseChoice, matchOption } = await import("../src/agent.ts");
+  assert.equal(parseChoice('```json\n{"choice":"ace"}\n```')?.choice, "ace");
+  assert.equal(parseChoice('Sure! {"choice":"drive","summary":"x"} Hope that helps.')?.choice, "drive");
+  assert.equal(parseChoice("no json here"), null);
+  const out = buildOptions({ prefs: DEFAULT_PREFS, snap: snap(), targetDate: "2026-11-11", nowMin: null });
+  assert.equal(matchOption(out.options, out.options[0].label.toUpperCase())?.id, out.options[0].id);
+  assert.equal(matchOption(out.options, "teleport"), undefined);
+});

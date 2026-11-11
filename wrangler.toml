@@ -20,6 +20,8 @@ NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1"
 NVIDIA_MODEL = "nvidia/nemotron-3.5-lightning-30b-a3b"
 # Used automatically if NVIDIA_MODEL errors (404 not enabled for the account, 5xx, timeout).
 NVIDIA_FALLBACK_MODEL = "nvidia/nemotron-3-ultra-550b-a55b"
+# Max time for the whole LLM step per plan; after this the deterministic pick is returned (trace says so).
+NVIDIA_BUDGET_MS = "30000"
 # Set to "true" to let the cron job call the LLM too (costs tokens + subrequests).
 CRON_LLM = "false"
 # Public project URL (not a secret). Keys go in Cloudflare secrets: SUPABASE_SERVICE_ROLE_KEY, NVIDIA_API_KEY, API_511_KEY.

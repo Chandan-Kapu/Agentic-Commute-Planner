@@ -77,9 +77,10 @@ function runTool(name: string, args: any, prefs: Prefs, snap: Snapshot, plan: Pl
   }
 }
 
-export function deterministicAgent(prefs: Prefs, snap: Snapshot, plan: PlannerOutput, note?: string): AgentOutput {
-  const trace: TraceStep[] = [];
-  for (const [name, args] of [["get_preferences"], ["get_traffic_incidents"], ["get_freeway_speeds"],
+export function deterministicAgent(prefs: Prefs, snap: Snapshot, plan: PlannerOutput, note?: string, modelTrace?: TraceStep[]): AgentOutput {
+  // Keep the model's own tool calls when falling back from the LLM; otherwise replay the standard tool sequence.
+  const trace: TraceStep[] = modelTrace?.length ? [...modelTrace] : [];
+  if (!trace.length) for (const [name, args] of [["get_preferences"], ["get_traffic_incidents"], ["get_freeway_speeds"],
     ["get_transit_departures", { system: "bart" }], ["get_transit_departures", { system: "caltrain" }], ["get_transit_departures", { system: "ace" }], ["get_weather"], ["evaluate_options"]] as const) {
     const r = runTool(name, args, prefs, snap, plan, snap.nowEpoch);
     trace.push({ kind: "tool", title: r.title, detail: r.detail });
@@ -97,8 +98,28 @@ export function deterministicAgent(prefs: Prefs, snap: Snapshot, plan: PlannerOu
   };
 }
 
+/** Extract {"choice": ...} from model text: plain JSON, fenced JSON, or JSON embedded in prose. */
+export function parseChoice(text: string): { choice?: unknown; summary?: unknown; reasoning?: unknown } | null {
+  const candidates = [text, ...(text.match(/```(?:json)?\s*([\s\S]*?)```/)?.slice(1) ?? []), ...(text.match(/\{[\s\S]*\}/) ?? [])];
+  for (const c of candidates) {
+    try {
+      const j = JSON.parse(c.trim());
+      if (j && typeof j === "object") return j;
+    } catch { /* try next */ }
+  }
+  return null;
+}
+
+/** Accept an option id ("drive"), or its exact label ("Leave 7:00 AM and drive"), case-insensitively. */
+export function matchOption(options: Option[], choice: unknown): Option | undefined {
+  const c = String(choice ?? "").trim().toLowerCase();
+  if (!c) return undefined;
+  return options.find((o) => o.id.toLowerCase() === c) ?? options.find((o) => o.label.toLowerCase() === c);
+}
+
 const SYSTEM = `You are a Bay Area commute-planning agent. Use the tools to inspect live traffic, freeway speeds,
 BART/Caltrain/ACE departures, weather and the user's preferences, then call evaluate_options.
+Call several tools in the same turn whenever you can (they are independent), to keep the plan fast.
 You MUST choose one option id returned by evaluate_options — never invent times, durations or options.
 Prefer the lowest score unless live evidence (e.g. a major incident, a delayed train, rain) or stated preferences justify another option; say why.
 When finished, reply with ONLY a JSON object:
@@ -110,23 +131,52 @@ export async function runAgent(env: Env, prefs: Prefs, snap: Snapshot, plan: Pla
   let model = models[0];
   const base = (env.NVIDIA_BASE_URL || "https://integrate.api.nvidia.com/v1").replace(/\/$/, "");
   const trace: TraceStep[] = [];
+  // Briefing: run every tool up front (they read the already-fetched snapshot, so this is instant) and hand the
+  // results to the model in one message. This cuts model round trips from ~7 to ~1–2; the model can still call
+  // any tool again for detail. Each step is shown in the trace.
+  const BRIEF: [string, any?][] = [["get_preferences"], ["get_traffic_incidents"], ["get_freeway_speeds"],
+    ["get_transit_departures", { system: "bart" }], ["get_transit_departures", { system: "caltrain" }],
+    ["get_transit_departures", { system: "ace" }], ["get_weather"], ["evaluate_options"]];
+  const briefing: Record<string, unknown> = {};
+  for (const [name, args] of BRIEF) {
+    const r = runTool(name, args, prefs, snap, plan, snap.nowEpoch);
+    trace.push({ kind: "tool", title: r.title, detail: r.detail });
+    briefing[args?.system ? `${name}:${args.system}` : name] = r.out;
+  }
   const messages: any[] = [
     { role: "system", content: SYSTEM },
-    { role: "user", content: kind === "night"
+    { role: "user", content: (kind === "night"
       ? "Plan tomorrow's commute (night-before plan). Live incidents may clear by morning; rely on typical traffic and schedules."
-      : "Re-plan this morning's commute using live conditions. Flag anything that changed." },
+      : "Re-plan this morning's commute using live conditions. Flag anything that changed.") +
+      "\n\nTool results already gathered for you (call a tool again only if you need more detail):\n" + JSON.stringify(briefing) },
   ];
+  let repaired = false;
+  let rounds = 0;
+  let thinkingOff = true;
+  // Total budget for the LLM step; past it we return the deterministic pick so the page never hangs.
+  const deadline = Date.now() + Number(env.NVIDIA_BUDGET_MS || 30_000);
   try {
     for (let step = 0; step < 8; step++) {
+      const left = deadline - Date.now();
+      if (left < 2_000) {
+        return deterministicAgent(prefs, snap, plan, `NVIDIA took longer than ${Math.round(Number(env.NVIDIA_BUDGET_MS || 30_000) / 1000)} s (${rounds} model calls); used the planner's pick`, trace);
+      }
       const ac = new AbortController();
-      const timer = setTimeout(() => ac.abort(), 25_000);
+      const timer = setTimeout(() => ac.abort(), Math.min(25_000, left));
       let j: any;
       try {
         const r = await fetch(`${base}/chat/completions`, {
           method: "POST", signal: ac.signal,
           headers: { Authorization: `Bearer ${env.NVIDIA_API_KEY}`, "Content-Type": "application/json", Accept: "application/json" },
-          body: JSON.stringify({ model, messages, tools: TOOLS, tool_choice: "auto", temperature: 0.2, max_tokens: 900 }),
+          // Nemotron 3.x "thinks" before answering by default, costing seconds per turn; switch it off.
+          body: JSON.stringify({ model, messages, tools: TOOLS, tool_choice: "auto", temperature: 0.2, max_tokens: 900,
+            ...(thinkingOff ? { chat_template_kwargs: { enable_thinking: false } } : {}) }),
         });
+        if (r.status === 400 && thinkingOff) {
+          thinkingOff = false; // model doesn't accept the option — retry this turn without it
+          step--;
+          continue;
+        }
         if (!r.ok) {
           // Model not enabled for this account (404), overloaded (5xx/429): switch to the fallback model once.
           const next = models[models.indexOf(model) + 1];
@@ -148,6 +198,7 @@ export async function runAgent(env: Env, prefs: Prefs, snap: Snapshot, plan: Pla
         }
         throw e;
       } finally { clearTimeout(timer); }
+      rounds++;
       const msg = j?.choices?.[0]?.message;
       if (!msg) throw new Error("empty response");
       const calls: any[] = msg.tool_calls ?? [];
@@ -162,18 +213,26 @@ export async function runAgent(env: Env, prefs: Prefs, snap: Snapshot, plan: Pla
         }
         continue;
       }
-      const text = String(msg.content ?? "");
-      if (msg.content && text.trim()) trace.push({ kind: "think", title: "Model reasoning", detail: text.slice(0, 280) });
-      const parsed = JSON.parse((text.match(/\{[\s\S]*\}/) ?? ["{}"])[0]);
-      const chosen = plan.options.find((o) => o.id === parsed.choice);
+      const text = String(msg.content ?? "").replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+      if (text) trace.push({ kind: "think", title: "Model reasoning", detail: text.slice(0, 280) });
+      const parsed = parseChoice(text);
+      const chosen = parsed && matchOption(plan.options, parsed.choice);
       if (!chosen) {
-        return deterministicAgent(prefs, snap, plan, `Model chose "${parsed.choice}", which is not a valid option`);
+        if (!repaired) {
+          // One repair turn: models sometimes answer in prose. Ask for the JSON only.
+          repaired = true;
+          messages.push({ role: "assistant", content: msg.content ?? "" });
+          messages.push({ role: "user", content: `Reply with ONLY the JSON object. "choice" must be one of: ${plan.options.map((o) => `"${o.id}"`).join(", ")}.` });
+          continue;
+        }
+        const said = text ? ` Model said: "${text.slice(0, 120)}"` : " Model returned no text.";
+        return deterministicAgent(prefs, snap, plan, `No valid option chosen (got ${JSON.stringify(parsed?.choice ?? null)}).${said}`, trace);
       }
       if (!trace.some((t) => t.title === "Scored options")) {
         const r = runTool("evaluate_options", {}, prefs, snap, plan, snap.nowEpoch);
         trace.push({ kind: "tool", title: r.title, detail: r.detail });
       }
-      trace.push({ kind: "decide", title: "Recommend", detail: chosen.label });
+      trace.push({ kind: "decide", title: "Recommend", detail: `${chosen.label} (${rounds} model call${rounds === 1 ? "" : "s"})` });
       return {
         agent: `nvidia:${model}`,
         recommended: chosen,
@@ -182,8 +241,8 @@ export async function runAgent(env: Env, prefs: Prefs, snap: Snapshot, plan: Pla
         trace,
       };
     }
-    return deterministicAgent(prefs, snap, plan, "Model did not finish within 8 steps");
+    return deterministicAgent(prefs, snap, plan, "Model did not finish within 8 steps", trace);
   } catch (e: any) {
-    return deterministicAgent(prefs, snap, plan, String(e?.message ?? e));
+    return deterministicAgent(prefs, snap, plan, String(e?.message ?? e), trace);
   }
 }
