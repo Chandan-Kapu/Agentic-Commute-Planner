@@ -24,6 +24,8 @@ NVIDIA_FALLBACK_MODEL = "nvidia/nemotron-3-ultra-550b-a55b"
 CRON_LLM = "false"
 # Public project URL (not a secret). Keys go in Cloudflare secrets: SUPABASE_SERVICE_ROLE_KEY, NVIDIA_API_KEY, API_511_KEY.
 SUPABASE_URL = "https://xmwwxyeddhbdahbxgxsj.supabase.co"
+# Publishable (public) key: used by the browser for magic-link sign-in. Safe to commit.
+SUPABASE_ANON_KEY = "sb_publishable_uQWXcnGkJWTin70P02pKDg_ovrbTQXY"
 
 # Optional: shared cache across isolates (strongly recommended — 511.org allows ~60 req/hour per key).
 # npx wrangler kv namespace create CACHE   → paste the id below
