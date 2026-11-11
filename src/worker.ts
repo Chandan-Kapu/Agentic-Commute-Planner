@@ -39,7 +39,12 @@ async function api(req: Request, env: Env, url: URL): Promise<Response> {
   const p = url.pathname;
   const m = req.method;
 
-  if (p === "/api/health") return json({ ok: true, time: new Date().toISOString() });
+  if (p === "/api/health") {
+    const store = db(env);
+    const out: Record<string, unknown> = { ok: true, time: new Date().toISOString() };
+    if (url.searchParams.get("db") === "1") out.db = store ? await store.health() : "not configured";
+    return json(out);
+  }
 
   if (p === "/api/config") {
     return json({

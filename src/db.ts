@@ -58,6 +58,19 @@ function makeDb(url: string, key: string) {
     insertFeedback(uid: string, f: { plan_id?: number; chosen_mode: string; rating?: number; note?: string }) {
       return post(`/feedback`, { user_id: id(uid), ...f }, "return=minimal");
     },
+    /** Health check: is each table reachable, and does it hold any rows? Returns no row data. */
+    async health(): Promise<Record<string, { ok: boolean; hasRows?: boolean; error?: string }>> {
+      const out: Record<string, { ok: boolean; hasRows?: boolean; error?: string }> = {};
+      for (const t of ["profiles", "plans", "alerts", "feedback"]) {
+        try {
+          const r = await q(`/${t}?select=id&limit=1`);
+          out[t] = { ok: true, hasRows: Array.isArray(r) && r.length > 0 };
+        } catch (e: any) {
+          out[t] = { ok: false, error: String(e?.message ?? e).slice(0, 80) };
+        }
+      }
+      return out;
+    },
     async alertProfiles(): Promise<{ id: string; prefs: Prefs }[]> {
       return (await q(`/profiles?select=id,prefs&prefs->alerts->>enabled=eq.true&limit=200`)) ?? [];
     },
