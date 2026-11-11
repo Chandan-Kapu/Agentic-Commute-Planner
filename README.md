@@ -1,6 +1,6 @@
 # Agentic Commute Planner
 
-Created and owned by **CHANDAN DAS**. © 2026 CHANDAN DAS. All rights reserved.
+Created and owned by **CHANDAN DAS**. © 2026 CHANDAN DAS. All rights reserved. See [LICENSE](LICENSE).
 
 Plans your Bay Area commute **the night before** and **re-plans it in the morning** from live data.
 It compares options like "leave 7:40 and drive", "drive to the BART station" and "wait until 9:15",

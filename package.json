@@ -2,6 +2,8 @@
   "name": "agentic-commute-planner",
   "version": "0.1.0",
   "private": true,
+  "license": "UNLICENSED",
+  "author": "CHANDAN DAS",
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
